@@ -4,7 +4,7 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { enforceRateLimit } from "./authHelpers";
 import { USERNAME_PATTERN, normalizeUsername, assertValidUsername } from "./auth";
-import { avatarUrlOf, currentUserId, displayNameOf, presenceInfoOf, profileOf, settingsOf, audit, areFriends, isBlockedEitherWay, syncOwnerRole, rankOf, isProtectedOwnerEmail } from "./lib";
+import { avatarUrlOf, currentUserId, displayNameOf, presenceInfoOf, profileOf, settingsOf, audit, areFriends, isBlockedEitherWay, syncOwnerRole, rankOf, isProtectedOwnerUser } from "./lib";
 import { stripLoneSurrogates, truncateText } from "../lib/message-format";
 
 // ---------- Identity helpers (username is unique, display name is not) ----------
@@ -271,7 +271,7 @@ export const me = query({
       role: user?.role ?? "user",
       isOwner: rankOf(user?.role) >= rankOf("owner"),
       isAdmin: rankOf(user?.role) >= rankOf("admin"),
-      isProtectedOwner: isProtectedOwnerEmail(user?.email),
+      isProtectedOwner: isProtectedOwnerUser(user),
       banned: user?.banned ?? false,
       suspendedUntil: user?.suspendedUntil ?? null,
       // Authoritative, freshly resolved avatar so the Dashboard updates instantly.

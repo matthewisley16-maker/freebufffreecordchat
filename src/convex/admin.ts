@@ -9,9 +9,11 @@ import {
   currentUserId,
   displayNameOf,
   isOwnerRole,
-  isProtectedOwnerEmail,
+  isProtectedOwnerUser,
+  OWNER_ADMIN_ROLE,
   platformSettingsOf,
   PROTECTED_OWNER_EMAILS,
+  PROTECTED_OWNER_USER_IDS,
   rankOf,
   requirePanelAccess,
   ROLE_RANK,
@@ -78,7 +80,7 @@ async function assertCanManage(
   if (actorId === targetId) {
     throw new ConvexError("You cannot modify your own account from the Admin Panel.");
   }
-  if (isProtectedOwnerEmail(target.email)) {
+  if (isProtectedOwnerUser(target)) {
     throw new ConvexError("This is a protected Owner Admin account and cannot be modified.");
   }
   if (actorRank <= targetRank) {
@@ -124,7 +126,7 @@ export const panelAccess = query({
       canAccess: rankOf(role) >= ROLE_RANK.admin,
       role,
       isOwner: rankOf(role) >= ROLE_RANK.owner,
-      isProtectedOwner: isProtectedOwnerEmail(user?.email),
+      isProtectedOwner: isProtectedOwnerUser(user),
       userId,
     };
   },
@@ -205,7 +207,7 @@ export const listUsers = query({
         name,
         email: u.email ?? null,
         role: u.role ?? "user",
-        isProtectedOwner: isProtectedOwnerEmail(u.email),
+        isProtectedOwner: isProtectedOwnerUser(u),
         isSelf: u._id === userId,
         banned: u.banned ?? false,
         banReason: u.banReason ?? null,
@@ -250,7 +252,7 @@ export const searchAccounts = query({
         name: nameById.get(u._id) || u.name || u.username || "Freebuff member",
         email: u.email ?? null,
         role: u.role ?? "user",
-        isProtectedOwner: isProtectedOwnerEmail(u.email),
+        isProtectedOwner: isProtectedOwnerUser(u),
       });
       if (out.length >= 25) break;
     }
@@ -912,7 +914,9 @@ export const purgeTestCommunities = internalMutation({
  * 1. Every protected email is looked up DIRECTLY through the email index, so an
  *    existing account is UPDATED in place (never duplicated) no matter where it
  *    sits in the users table. Exactly one account per email becomes Owner Admin.
- * 2. Any account still holding an owner role without a protected email is
+ * 2. Every account listed in `PROTECTED_OWNER_USER_IDS` is promoted by identity
+ *    (those accounts need no email at all).
+ * 3. Any account still holding an owner role without a protected email or id is
  *    demoted back to `user`, so ownership can never be held by accident.
  *
  * Run with:  npx convex run admin:syncOwners
@@ -949,10 +953,25 @@ export const syncOwners = internalMutation({
       results.push({ email, userId: owner._id, action: owner.role === "owner_admin" ? "already_owner" : "promoted" });
     }
 
-    // Nobody may hold an owner role without a protected email.
+    // Accounts that hold Owner Admin by IDENTITY (nobody else could be them).
+    for (const userId of PROTECTED_OWNER_USER_IDS) {
+      const user = await ctx.db.get(userId as Id<"users">);
+      if (!user) {
+        results.push({ email: `id:${userId}`, userId: null, action: "no_account" });
+        continue;
+      }
+      const alreadyOwner = user.role === OWNER_ADMIN_ROLE;
+      if (!alreadyOwner) {
+        await ctx.db.patch(user._id, { role: OWNER_ADMIN_ROLE });
+        promoted++;
+      }
+      results.push({ email: user.email ?? `id:${userId}`, userId: user._id, action: alreadyOwner ? "already_owner" : "promoted" });
+    }
+
+    // Nobody may hold an owner role without a protected email or identity.
     const users = await ctx.db.query("users").collect();
     for (const u of users) {
-      if (!isProtectedOwnerEmail(u.email) && isOwnerRole(u.role)) {
+      if (!isProtectedOwnerUser(u) && isOwnerRole(u.role)) {
         await ctx.db.patch(u._id, { role: "user" });
         corrected++;
       }

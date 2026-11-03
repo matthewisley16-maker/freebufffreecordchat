@@ -375,10 +375,14 @@ export function isTimedOut(membership: Doc<"memberships"> | null) {
 // ---------------- Account roles & protected owners ----------------
 
 /**
- * The ONLY accounts that may hold the highest "Owner Admin" role. Ownership is
- * keyed by email and is permanent: these addresses are recognised on sign-up and
- * on every identity sync, and can never be demoted, banned or deleted through
- * the application (see `admin.setUserRole` / `banUser` / `deleteUser`).
+ * Accounts that may hold the highest "Owner Admin" role by EMAIL. Ownership is
+ * permanent: these addresses are recognised on sign-up, when the address is
+ * attached in Settings, and on every identity sync, and such an account can never
+ * be demoted, banned or deleted through the application (see `admin.setUserRole` /
+ * `banUser` / `deleteUser`).
+ *
+ * An account WITHOUT one of these addresses can still be an Owner Admin by
+ * identity — see `PROTECTED_OWNER_USER_IDS` below.
  */
 export const PROTECTED_OWNER_EMAILS: readonly string[] = [
   "matthewisley16@gmail.com",
@@ -390,6 +394,35 @@ export const PROTECTED_OWNER_EMAILS: readonly string[] = [
 export function isProtectedOwnerEmail(email?: string | null): boolean {
   if (!email) return false;
   return PROTECTED_OWNER_EMAILS.includes(email.trim().toLowerCase());
+}
+
+/**
+ * Accounts that are Owner Admin by IDENTITY rather than by email.
+ *
+ * Email-keyed ownership cannot cover an account that has no address attached, and
+ * a USERNAME is not a safe key: its owner can change it, and a freed name could be
+ * claimed by somebody else. A user id never changes and can never be claimed, so an
+ * account listed here holds Owner Admin for as long as it exists — no email, no
+ * verification, no rename and no lost address can take it away.
+ *
+ * Add an id here to make that exact account an Owner Admin (it is applied on the
+ * next dashboard/panel load by `ensureIdentity` → `syncOwnerRole`).
+ */
+export const PROTECTED_OWNER_USER_IDS: readonly string[] = [
+  /** matthewisley16 — the deployment owner's account. */
+  "jx7a2dnnfpkw1ft3y9qzkhqzv58fk64q",
+];
+
+/** True when a user id is a protected Owner Admin by identity. */
+export function isProtectedOwnerId(userId?: string | null): boolean {
+  if (!userId) return false;
+  return PROTECTED_OWNER_USER_IDS.includes(userId);
+}
+
+/** True for a protected owner account: by identity OR by its protected email. */
+export function isProtectedOwnerUser(user?: { _id: string; email?: string | null } | null): boolean {
+  if (!user) return false;
+  return isProtectedOwnerId(user._id) || isProtectedOwnerEmail(user.email);
 }
 
 /**
@@ -426,11 +459,12 @@ export async function roleOfUser(ctx: Ctx, userId: Id<"users">): Promise<string>
 }
 
 /**
- * A protected Owner Admin: the account's email is one of the protected owner
- * addresses. Ownership follows the email, so it cannot be transferred or lost
- * through a role change or an account rename.
+ * A protected Owner Admin: the account holds one of the protected owner addresses,
+ * or its user id is listed in `PROTECTED_OWNER_USER_IDS`. Ownership cannot be
+ * transferred or lost through a role change or an account rename.
  */
 export async function isProtectedOwner(ctx: Ctx, userId: Id<"users">): Promise<boolean> {
+  if (isProtectedOwnerId(userId)) return true;
   const user = await ctx.db.get(userId);
   return isProtectedOwnerEmail(user?.email);
 }
@@ -443,8 +477,15 @@ export async function isProtectedOwner(ctx: Ctx, userId: Id<"users">): Promise<b
 export async function syncOwnerRole(ctx: MutationCtx, userId: Id<"users">) {
   const user = await ctx.db.get(userId);
   if (!user) return;
-  const shouldBeOwner = isProtectedOwnerEmail(user.email);
+  const byIdentity = isProtectedOwnerId(userId);
+  const shouldBeOwner = byIdentity || isProtectedOwnerEmail(user.email);
   if (shouldBeOwner && user.role !== OWNER_ADMIN_ROLE) {
+    // An id-listed account is promoted outright: it IS that account, so nothing
+    // else can hold or take the role from it.
+    if (byIdentity) {
+      await ctx.db.patch(userId, { role: OWNER_ADMIN_ROLE });
+      return;
+    }
     // Exactly one account per protected email may hold Owner Admin: if another
     // account already claimed this email, this duplicate is not promoted.
     const sameEmail = await ctx.db
@@ -454,7 +495,8 @@ export async function syncOwnerRole(ctx: MutationCtx, userId: Id<"users">) {
     const alreadyOwned = sameEmail.some((u) => isOwnerRole(u.role) && u._id !== userId);
     if (!alreadyOwned) await ctx.db.patch(userId, { role: OWNER_ADMIN_ROLE });
   } else if (!shouldBeOwner && isOwnerRole(user.role)) {
-    // Only the protected emails may hold Owner Admin; anything else is corrected.
+    // Only a protected identity or a protected email may hold Owner Admin;
+    // anything else is corrected.
     await ctx.db.patch(userId, { role: "user" });
   }
 }
