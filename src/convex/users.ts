@@ -189,6 +189,9 @@ export const setEmail = mutation({
 
     if (normalized.length === 0) {
       await ctx.db.patch(me, { email: undefined, emailVerificationTime: undefined });
+      // Ownership follows the email, so dropping the address also drops the role
+      // (the next dashboard load would apply it too — this makes it immediate).
+      await syncOwnerRole(ctx, me);
       await audit(ctx, "user.email", me, "Removed their email", "user", me);
       return { email: null };
     }
@@ -219,6 +222,12 @@ export const setEmail = mutation({
     }
 
     await ctx.db.patch(me, { email: normalized, emailVerificationTime: undefined });
+    // A protected owner email must take effect RIGHT HERE, not on the next page
+    // load: ownership follows the address, so the member who just attached their
+    // owner email should immediately hold Owner Admin (and a non-owner address
+    // immediately stops granting it). `ensureIdentity` still re-checks on every
+    // load as the safety net.
+    await syncOwnerRole(ctx, me);
     await audit(ctx, "user.email", me, "Updated their email", "user", me);
     return { email: normalized };
   },
