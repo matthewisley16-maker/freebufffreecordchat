@@ -7,6 +7,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { toSafeArray } from "@/lib/collection";
 import { DELETED_FOR_ME_TTL_MS, deletedForMeRemainingLabel } from "@/lib/deleted-messages";
 import { communityCategoryOptions } from "@/lib/community-categories";
+import { LEGACY_MEMBERS } from "@/lib/legacy-members";
 import { COMMUNITY_IMAGE_ACCEPT, COMMUNITY_IMAGE_MAX_BYTES, communityImageContentType, communityImageProblem } from "@/lib/community-cover";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -434,6 +435,9 @@ export default function AdminPanel() {
   // Owner-only lockout recovery. The backend re-checks the role hierarchy; this
   // hook never decides who may use it.
   const resetUserPassword = useAction(api.admin.resetUserPassword);
+  // One-time migration of the previous site's members (Owner Admin only; the
+  // backend re-checks and skips usernames that already exist).
+  const importMembers = useAction(api.admin.importMembers);
   const deleteCommunity = useMutation(api.admin.deleteCommunity);
   const updateCommunity = useMutation(api.admin.updateCommunity);
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
@@ -713,6 +717,31 @@ export default function AdminPanel() {
 
           {/* ---------------- Users ---------------- */}
           <TabsContent value="users" className="mt-4">
+            {actorIsOwner && (
+              <Card className="mb-4 border-violet-400/25 bg-violet-500/[0.06]">
+                <CardHeader className="gap-2">
+                  <CardTitle className="text-base">Bring over the old member list</CardTitle>
+                  <CardDescription>
+                    Creates the {LEGACY_MEMBERS.length} accounts from the old site that don&apos;t exist here yet, with
+                    the role each one had and the temporary password <strong className="text-violet-200">0000</strong>.
+                    Usernames that are already taken are skipped, so it is safe to press more than once. Everyone can
+                    change their password in Settings once they are back in.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap items-center gap-3">
+                  <Button
+                    disabled={busy}
+                    onClick={() => run(
+                      () => importMembers({ members: LEGACY_MEMBERS }),
+                      "Old members imported — they can sign in with their username and 0000.",
+                    )}
+                  >
+                    <Users className="mr-1 size-4" /> Import {LEGACY_MEMBERS.length} accounts
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Owner Admin only · recorded in the Audit Log</span>
+                </CardContent>
+              </Card>
+            )}
             <Card className="border-white/10 bg-card/40">
               <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>

@@ -19,6 +19,7 @@ import {
   rankOf,
   requirePanelAccess,
   ROLE_RANK,
+  syncOwnerRole,
 } from "./lib";
 import { communityCategoryOf, communityCategoryProblem, normalizeCommunityCategory } from "../lib/community-categories";
 // The group-picture rule and the blob cleanup are shared with the owner-facing
@@ -512,6 +513,122 @@ export const resetUserPassword = action({
     const passwordHash = await new Scrypt().hash(password);
     await ctx.runMutation(internal.admin.applyPasswordReset, { userId, passwordHash });
     return { ok: true as const };
+  },
+});
+
+/**
+ * One-time migration of the previous site's member list.
+ *
+ * The password is `0000` for everyone — a temporary, deliberately weak password
+ * for moving accounts across, which each member is expected to change in
+ * Settings. It therefore bypasses the normal sign-up rules (8+ characters, a
+ * letter and a number) exactly like `resetUserPassword` does; those rules exist
+ * to protect self-service sign-up, not an operator provisioning known accounts.
+ *
+ * One Scrypt hash is computed and reused: the password is public knowledge, so a
+ * per-account salt would only slow the action down without protecting anything.
+ */
+export const importMembers = action({
+  args: {
+    members: v.array(
+      v.object({
+        username: v.string(),
+        name: v.string(),
+        email: v.optional(v.string()),
+        role: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, { members }) => {
+    const passwordHash = await new Scrypt().hash(MIGRATED_PASSWORD);
+    return await ctx.runMutation(internal.admin.applyMemberImport, {
+      members: members.slice(0, 200).map((m) => ({ ...m, passwordHash })),
+    });
+  },
+});
+
+/** The temporary password every migrated account starts with. */
+const MIGRATED_PASSWORD = "0000";
+
+const MIGRATABLE_ROLES = new Set(["user", "moderator", "admin"]);
+
+export const applyMemberImport = internalMutation({
+  args: {
+    members: v.array(
+      v.object({
+        username: v.string(),
+        name: v.string(),
+        email: v.optional(v.string()),
+        role: v.optional(v.string()),
+        passwordHash: v.string(),
+      }),
+    ),
+  },
+  handler: async (ctx, { members }) => {
+    const me = await currentUserId(ctx);
+    const role = await requirePanelAccess(ctx, me);
+    if (!isOwnerRole(role)) throw new ConvexError("Only Owner Admins can import accounts.");
+
+    const created: string[] = [];
+    const skipped: Array<{ username: string; reason: string }> = [];
+    const claimedEmails = new Set<string>();
+
+    for (const member of members) {
+      const username = member.username.trim().toLowerCase();
+      if (!/^[a-z0-9._]{3,24}$/.test(username)) {
+        skipped.push({ username, reason: "not a valid username" });
+        continue;
+      }
+      const taken = await ctx.db
+        .query("users")
+        .withIndex("username", (q) => q.eq("username", username))
+        .unique();
+      if (taken) {
+        skipped.push({ username, reason: "already exists" });
+        continue;
+      }
+
+      // An address may only be attached once: email lookups expect one account.
+      let email = member.email?.trim().toLowerCase() || undefined;
+      if (email) {
+        const clash = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email!)).first();
+        if (clash || claimedEmails.has(email)) email = undefined;
+        else claimedEmails.add(email);
+      }
+
+      const name = truncateText(member.name.trim() || username, 40) || username;
+      const requested = member.role && MIGRATABLE_ROLES.has(member.role) ? member.role : "user";
+
+      const userId = await ctx.db.insert("users", {
+        name,
+        username,
+        ...(email ? { email } : {}),
+        role: requested as "user" | "moderator" | "admin",
+      });
+      await ctx.db.insert("authAccounts", {
+        userId,
+        provider: "password",
+        providerAccountId: username,
+        secret: member.passwordHash,
+      });
+      await ctx.db.insert("profiles", { userId, displayName: name });
+      // Ownership is never taken from the list: a protected owner email still
+      // wins, and nobody else can be promoted to Owner Admin by an import.
+      await syncOwnerRole(ctx, userId);
+      created.push(username);
+    }
+
+    const actor = await actorCard(ctx, me);
+    await auditAdmin(ctx, {
+      action: "account.import",
+      actorId: me,
+      actorName: actor.name,
+      targetType: "platform",
+      targetId: "members",
+      detail: `Imported ${created.length} account(s) with a temporary password; ${skipped.length} skipped.`,
+    });
+
+    return { created: created.length, skipped };
   },
 });
 
