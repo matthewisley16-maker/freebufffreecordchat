@@ -15,7 +15,8 @@
  * deploy; if separate dev/prod deployments are ever created, point the develop
  * environment at the dev one here and keep the deployed build on this value.
  */
-export const CONVEX_URL = "https://academic-porcupine-929.convex.cloud";
+export const CONVEX_URL =
+  import.meta.env.VITE_CONVEX_URL || "https://academic-porcupine-929.convex.cloud";
 
 /** Short deployment name ("academic-porcupine-929") — safe to display. */
 export const DEPLOYMENT_NAME = CONVEX_URL.replace(/^https?:\/\//, "").replace(/\.convex\.(cloud|site).*$/, "");
