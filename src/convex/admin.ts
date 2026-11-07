@@ -1,9 +1,11 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
+import { Scrypt } from "lucia";
+import { action, internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 import {
   auditAdmin,
   currentUserId,
@@ -419,6 +421,97 @@ export const unsuspendUser = mutation({
       detail: `Cleared suspension for ${target.username ?? target.email ?? userId}`,
     });
     return { suspendedUntil: null };
+  },
+});
+
+/**
+ * Lockout recovery — an Owner Admin sets a NEW password on another account.
+ *
+ * This is deliberately separate from the self-service password actions, which
+ * require either the current password or a proven email code: this is the
+ * "they cannot get back in at all" path, so it does not ask for the old one.
+ *
+ * It is NOT a way around the role hierarchy. The internal mutation repeats every
+ * check the rest of this file makes — panel access, Owner Admin only, never a
+ * protected owner, never an equal/higher role, never your own account — because
+ * the client can never be trusted to have decided any of that. The Scrypt hash is
+ * computed in the action (CPU-bound, like `passwords.ts`); the write happens in
+ * the internal mutation, which the client cannot call directly. Sessions are
+ * dropped so the reset takes effect immediately, and the action is audited.
+ */
+export const applyPasswordReset = internalMutation({
+  args: { userId: v.id("users"), passwordHash: v.string() },
+  handler: async (ctx, { userId, passwordHash }) => {
+    const me = await currentUserId(ctx);
+    const role = await requirePanelAccess(ctx, me);
+    if (!isOwnerRole(role)) {
+      throw new ConvexError("Only Owner Admins can reset another account's password.");
+    }
+    const { target } = await assertCanManage(ctx, me, userId);
+
+    const account = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", userId).eq("provider", "password"))
+      .unique();
+
+    if (account) {
+      await ctx.db.patch(account._id, { secret: passwordHash });
+    } else {
+      // An email-only or guest account has no password credential yet; the
+      // username is the account id, so it can be created here and the person can
+      // sign in with username + the password the Owner Admin set.
+      const username = target.username;
+      if (!username) {
+        throw new ConvexError("That account has no username, so it cannot be given a password.");
+      }
+      const clash = await ctx.db
+        .query("authAccounts")
+        .withIndex("providerAndAccountId", (q) => q.eq("provider", "password").eq("providerAccountId", username))
+        .unique();
+      if (clash && clash.userId !== userId) {
+        throw new ConvexError("That username is already linked to another password.");
+      }
+      await ctx.db.insert("authAccounts", {
+        userId,
+        provider: "password",
+        providerAccountId: username,
+        secret: passwordHash,
+      });
+    }
+
+    // The old password must stop working everywhere, immediately.
+    await killSessions(ctx, userId);
+
+    const actor = await actorCard(ctx, me);
+    await auditAdmin(ctx, {
+      action: "account.password.reset",
+      actorId: me,
+      actorName: actor.name,
+      targetType: "user",
+      targetId: userId,
+      targetUserId: userId,
+      targetName: await displayNameOf(ctx, userId),
+      detail: `Reset the password for ${target.username ?? target.email ?? userId}`,
+    });
+    return { ok: true as const };
+  },
+});
+
+/**
+ * Owner Admin lockout recovery. `0000` is a one-time temporary password meant to
+ * be changed by the member afterwards, so it intentionally bypasses the normal
+ * 8-character/letter+number rule — those rules protect self-service sign-up, not
+ * an operator handing somebody a way back into their own account.
+ */
+export const resetUserPassword = action({
+  args: { userId: v.id("users"), newPassword: v.string() },
+  handler: async (ctx, { userId, newPassword }) => {
+    const password = newPassword.trim();
+    if (password.length < 1) throw new ConvexError("Enter a temporary password.");
+    if (password.length > 200) throw new ConvexError("That password is too long.");
+    const passwordHash = await new Scrypt().hash(password);
+    await ctx.runMutation(internal.admin.applyPasswordReset, { userId, passwordHash });
+    return { ok: true as const };
   },
 });
 

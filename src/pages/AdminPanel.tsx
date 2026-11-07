@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -22,7 +22,7 @@ import { AdminPinGate, AdminPinSettings } from "@/components/admin/admin-pin";
 import CleanupMaintenance from "@/components/admin/CleanupMaintenance";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Ban, Check, Crown, ImagePlus, Paperclip, Search, ShieldAlert, ShieldCheck, Trash2, UserCog, Users, Clock,
+  ArrowLeft, Ban, Check, Crown, ImagePlus, KeyRound, Paperclip, Search, ShieldAlert, ShieldCheck, Trash2, UserCog, Users, Clock,
 } from "lucide-react";
 
 /** Mirrors the backend ROLE_RANK so the UI reflects — never decides — authority. */
@@ -337,6 +337,7 @@ type PendingAction =
   | { type: "unban"; user: AdminUser }
   | { type: "suspend"; user: AdminUser }
   | { type: "unsuspend"; user: AdminUser }
+  | { type: "resetpw"; user: AdminUser }
   | { type: "delete"; user: AdminUser }
   | null;
 
@@ -430,6 +431,9 @@ export default function AdminPanel() {
   const suspendUser = useMutation(api.admin.suspendUser);
   const unsuspendUser = useMutation(api.admin.unsuspendUser);
   const deleteUser = useMutation(api.admin.deleteUser);
+  // Owner-only lockout recovery. The backend re-checks the role hierarchy; this
+  // hook never decides who may use it.
+  const resetUserPassword = useAction(api.admin.resetUserPassword);
   const deleteCommunity = useMutation(api.admin.deleteCommunity);
   const updateCommunity = useMutation(api.admin.updateCommunity);
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
@@ -442,6 +446,9 @@ export default function AdminPanel() {
   const [pending, setPending] = useState<PendingAction>(null);
   const [reason, setReason] = useState("");
   const [durationHours, setDurationHours] = useState("24");
+  // Pre-filled with the standard 4-zero temporary password, editable for the
+  // occasional three-digit one. Nothing is applied until Confirm.
+  const [newPassword, setNewPassword] = useState("0000");
   const [settingsDraft, setSettingsDraft] = useState<{ announcement: string; newCommunitiesEnabled: boolean; discoveryEnabled: boolean } | null>(null);
   const [editCommunity, setEditCommunity] = useState<null | { serverId: string; name: string; description: string; isPublic: boolean; locked: boolean; category: string; iconUrl: string | null }>(null);
   // The group picture an administrator picked but has NOT saved yet. Nothing is
@@ -591,6 +598,8 @@ export default function AdminPanel() {
       await run(() => suspendUser({ userId: pending.user.userId as Id<"users">, reason: reason.trim() || undefined, durationMs: hours * 60 * 60 * 1000 }), "Account suspended.");
     } else if (pending.type === "unsuspend") {
       await run(() => unsuspendUser({ userId: pending.user.userId as Id<"users"> }), "Suspension cleared.");
+    } else if (pending.type === "resetpw") {
+      await run(() => resetUserPassword({ userId: pending.user.userId as Id<"users">, newPassword }), "Password reset — they can sign in with it now.");
     } else if (pending.type === "delete") {
       await run(() => deleteUser({ userId: pending.user.userId as Id<"users"> }), "Account deleted.");
     }
@@ -784,6 +793,16 @@ export default function AdminPanel() {
                             <Button size="sm" variant="secondary" onClick={() => setPending({ type: "unsuspend", user: u as AdminUser })}>Clear</Button>
                           ) : (
                             <Button size="sm" variant="outline" onClick={() => setPending({ type: "suspend", user: u as AdminUser })}>Suspend</Button>
+                          )}
+                          {actorIsOwner && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              title="Give this account a temporary password"
+                              onClick={() => { setNewPassword("0000"); setPending({ type: "resetpw", user: u as AdminUser }); }}
+                            >
+                              <KeyRound className="mr-1 size-4" /> Password
+                            </Button>
                           )}
                           <Button size="sm" variant="outline" className="text-destructive" onClick={() => setPending({ type: "delete", user: u as AdminUser })}>
                             <Trash2 className="size-4" />
@@ -1372,6 +1391,7 @@ export default function AdminPanel() {
               {pending?.type === "unban" && "Remove ban"}
               {pending?.type === "suspend" && "Temporarily suspend"}
               {pending?.type === "unsuspend" && "Clear suspension"}
+              {pending?.type === "resetpw" && "Reset password"}
               {pending?.type === "delete" && "Delete account"}
             </DialogTitle>
             <DialogDescription>
@@ -1389,6 +1409,17 @@ export default function AdminPanel() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Reason (optional)</label>
               <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Shown to the member" />
+            </div>
+          )}
+          {pending?.type === "resetpw" && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">New temporary password</label>
+              <Input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="0000" maxLength={200} />
+              <p className="text-xs text-muted-foreground">
+                Use this when someone is locked out and cannot get back in. Leave it as <strong>0000</strong> for the
+                standard four-zero password, or type another value (for example <strong>000</strong>). Every device
+                signed into that account is signed out immediately, and they can change it in Settings afterwards.
+              </p>
             </div>
           )}
           {pending?.type === "delete" && (
