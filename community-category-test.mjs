@@ -131,7 +131,7 @@ is("no current value means supported options only", communityCategoryOptions(und
 // ---------------------------------------------------------------------------
 // Live: the deployment's Discover data and its filter
 // ---------------------------------------------------------------------------
-const URL = process.env.CONVEX_URL || "https://academic-porcupine-929.convex.cloud";
+const URL = process.env.CONVEX_URL || "https://greedy-parrot-298.convex.cloud";
 const anonymous = new ConvexHttpClient(URL);
 
 async function rejection(fn) {

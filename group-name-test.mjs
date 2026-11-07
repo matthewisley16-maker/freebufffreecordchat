@@ -145,7 +145,7 @@ check("the Conversations page is laid out like the other views", dashboard.inclu
 // ---------------------------------------------------------------------------
 // 3. Live: the conversations list answers (read-only, no session)
 // ---------------------------------------------------------------------------
-const URL_ = process.env.CONVEX_URL || "https://academic-porcupine-929.convex.cloud";
+const URL_ = process.env.CONVEX_URL || "https://greedy-parrot-298.convex.cloud";
 const anonymous = new ConvexHttpClient(URL_);
 async function rejection(fn) {
   try {

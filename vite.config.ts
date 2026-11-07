@@ -67,8 +67,10 @@ export default defineConfig({
     },
     // Increase chunk size warning limit for better chunking
     chunkSizeWarningLimit: 1000,
-    // Target modern browsers for better optimization
-    target: 'esnext',
+    // Transpile down to ES2019 so older phones (iOS 13, older Android WebViews)
+    // can parse the bundle. `esnext` shipped syntax those browsers cannot parse,
+    // which shows up as a blank page for those visitors.
+    target: 'es2019',
     // Minify options - using esbuild (faster than terser)
     minify: 'esbuild',
   },

@@ -207,7 +207,7 @@ check("a closing tab records the disconnect", dashboard.includes("window.addEven
 // ---------------------------------------------------------------------------
 // 3. Live: the friends query answers (read-only, no session)
 // ---------------------------------------------------------------------------
-const anonymous = new ConvexHttpClient(process.env.CONVEX_URL || "https://academic-porcupine-929.convex.cloud");
+const anonymous = new ConvexHttpClient(process.env.CONVEX_URL || "https://greedy-parrot-298.convex.cloud");
 async function rejection(fn) {
   try {
     return { error: null, result: await fn() };

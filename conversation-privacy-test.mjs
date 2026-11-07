@@ -16,7 +16,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "./src/convex/_generated/api.js";
 
 import { guardedDeploymentUrl } from "./test-support/guard.mjs";
-const URL = guardedDeploymentUrl("https://academic-porcupine-929.convex.cloud");
+const URL = guardedDeploymentUrl("https://greedy-parrot-298.convex.cloud");
 const stamp = Date.now().toString(36);
 let pass = 0, fail = 0;
 const ok = (name) => { pass++; console.log(`PASS: ${name}`); };

@@ -15,8 +15,23 @@
  * deploy; if separate dev/prod deployments are ever created, point the develop
  * environment at the dev one here and keep the deployed build on this value.
  */
-export const CONVEX_URL =
-  import.meta.env.VITE_CONVEX_URL || "https://academic-porcupine-929.convex.cloud";
+/**
+ * Resolve the deployment from the build environment ONLY.
+ *
+ * There is deliberately no hard-coded fallback: a build with no VITE_CONVEX_URL
+ * must fail loudly instead of silently talking to some other database.
+ */
+function resolveConvexUrl(): string {
+  const url = import.meta.env.VITE_CONVEX_URL;
+  if (!url) {
+    throw new Error(
+      "No Convex deployment is configured for this build. Set VITE_CONVEX_URL to https://<deployment>.convex.cloud and rebuild.",
+    );
+  }
+  return url;
+}
 
-/** Short deployment name ("academic-porcupine-929") — safe to display. */
+export const CONVEX_URL = resolveConvexUrl();
+
+/** Short deployment name ("greedy-parrot-298") — safe to display. */
 export const DEPLOYMENT_NAME = CONVEX_URL.replace(/^https?:\/\//, "").replace(/\.convex\.(cloud|site).*$/, "");

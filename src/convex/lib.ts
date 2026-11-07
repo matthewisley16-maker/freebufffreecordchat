@@ -409,9 +409,21 @@ export function isProtectedOwnerEmail(email?: string | null): boolean {
  * next dashboard/panel load by `ensureIdentity` → `syncOwnerRole`).
  */
 export const PROTECTED_OWNER_USER_IDS: readonly string[] = [
-  /** matthewisley16 — the deployment owner's account. */
-  "jx7a2dnnfpkw1ft3y9qzkhqzv58fk64q",
+  // Empty on purpose: a user id belongs to ONE deployment, so a stale id here
+  // would be a dangling reference to another database. Ownership on this site is
+  // keyed by the protected email and by `PROTECTED_OWNER_USERNAMES` below.
 ];
+
+/**
+ * Accounts that are Owner Admin by USERNAME.
+ *
+ * This is the escape hatch for a site whose owner signed up without an email and
+ * whose user id is not known yet: the name is promoted on the next identity sync
+ * (`ensureIdentity` → `syncOwnerRole`), so the owner can never be left without
+ * panel access. A user id (above) is still preferred once it is known, because a
+ * username can be renamed.
+ */
+export const PROTECTED_OWNER_USERNAMES: readonly string[] = ["matthewisley16"];
 
 /** True when a user id is a protected Owner Admin by identity. */
 export function isProtectedOwnerId(userId?: string | null): boolean {
@@ -419,10 +431,16 @@ export function isProtectedOwnerId(userId?: string | null): boolean {
   return PROTECTED_OWNER_USER_IDS.includes(userId);
 }
 
-/** True for a protected owner account: by identity OR by its protected email. */
-export function isProtectedOwnerUser(user?: { _id: string; email?: string | null } | null): boolean {
+/** True when a username is a protected Owner Admin account. */
+export function isProtectedOwnerUsername(username?: string | null): boolean {
+  if (!username) return false;
+  return PROTECTED_OWNER_USERNAMES.includes(username.trim().toLowerCase());
+}
+
+/** True for a protected owner account: by identity OR username OR protected email. */
+export function isProtectedOwnerUser(user?: { _id: string; email?: string | null; username?: string | null } | null): boolean {
   if (!user) return false;
-  return isProtectedOwnerId(user._id) || isProtectedOwnerEmail(user.email);
+  return isProtectedOwnerId(user._id) || isProtectedOwnerUsername(user.username) || isProtectedOwnerEmail(user.email);
 }
 
 /**
@@ -477,7 +495,7 @@ export async function isProtectedOwner(ctx: Ctx, userId: Id<"users">): Promise<b
 export async function syncOwnerRole(ctx: MutationCtx, userId: Id<"users">) {
   const user = await ctx.db.get(userId);
   if (!user) return;
-  const byIdentity = isProtectedOwnerId(userId);
+  const byIdentity = isProtectedOwnerId(userId) || isProtectedOwnerUsername(user.username);
   const shouldBeOwner = byIdentity || isProtectedOwnerEmail(user.email);
   if (shouldBeOwner && user.role !== OWNER_ADMIN_ROLE) {
     // An id-listed account is promoted outright: it IS that account, so nothing

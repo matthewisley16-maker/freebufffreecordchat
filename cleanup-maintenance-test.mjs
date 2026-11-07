@@ -465,7 +465,7 @@ check("the panel explains that deleted messages cannot be restored",
 // ---------------------------------------------------------------------------
 // Nothing here signs in, so no call below can write anything: each one either
 // fails argument validation or fails the backend's own authorization gate.
-const URL_ = process.env.CONVEX_URL || "https://academic-porcupine-929.convex.cloud";
+const URL_ = process.env.CONVEX_URL || "https://greedy-parrot-298.convex.cloud";
 const anonymous = new ConvexHttpClient(URL_);
 // A real-shaped id that does not exist: the id validator passes, the
 // authorization gate is what answers.

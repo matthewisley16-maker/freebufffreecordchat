@@ -1116,7 +1116,7 @@ Convex could not discover the auth provider, so every client's WebSocket closed 
 while auth resolved, so users saw a black page.
 
 **Which deployment, and why the "development" spike matters.** There is currently ONE
-deployment (`academic-porcupine-929`, defined in `src/lib/deployment.ts`), used by dev, the
+deployment (`greedy-parrot-298`, defined in `src/lib/deployment.ts`), used by dev, the
 preview and the deployed site. So Convex's usage chart splits the same deployment's traffic
 into *development* calls (the sandbox `convex dev` process and the preview app) and
 *production* calls (the deployed site) — and **both count against the same limits**. In the

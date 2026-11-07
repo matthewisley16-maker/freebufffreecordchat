@@ -179,7 +179,7 @@ for (const [file, label] of [
 // ---------------------------------------------------------------------------
 // Nothing here signs in, so no call below can write anything: they either fail
 // argument validation or fail the backend's own authorization gate.
-const URL_ = process.env.CONVEX_URL || "https://academic-porcupine-929.convex.cloud";
+const URL_ = process.env.CONVEX_URL || "https://greedy-parrot-298.convex.cloud";
 const anonymous = new ConvexHttpClient(URL_);
 const FABRICATED_SERVER = "jd7f4m2q9w1s8x0k3v5n6b2c4z7h9t1r";
 const FABRICATED_STORAGE = "kg2e5f8a1b4c7d0e3f6a9b2c5d8e1f4";

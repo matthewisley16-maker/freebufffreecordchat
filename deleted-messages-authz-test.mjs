@@ -14,7 +14,7 @@
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "./src/convex/_generated/api.js";
 
-const URL = process.env.CONVEX_URL || "https://academic-porcupine-929.convex.cloud";
+const URL = process.env.CONVEX_URL || "https://greedy-parrot-298.convex.cloud";
 const anonymous = new ConvexHttpClient(URL); // deliberately NO setAuth(...)
 
 let pass = 0, fail = 0;

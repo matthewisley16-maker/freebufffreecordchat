@@ -107,7 +107,7 @@ is("the countdown rounds up to the next second", adminPinLockoutSeconds(NOW + 5_
 // ---------------------------------------------------------------------------
 // 2. The live server-side boundary (no session, nothing created)
 // ---------------------------------------------------------------------------
-const URL = process.env.CONVEX_URL || "https://academic-porcupine-929.convex.cloud";
+const URL = process.env.CONVEX_URL || "https://greedy-parrot-298.convex.cloud";
 const anonymous = new ConvexHttpClient(URL);
 
 async function rejection(fn) {

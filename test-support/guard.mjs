@@ -31,7 +31,7 @@
 
 /** Deployments used by real, human Freecord accounts. Never write test data here. */
 const PRODUCTION_DEPLOYMENT_URLS = new Set([
-  "https://academic-porcupine-929.convex.cloud",
+  "https://greedy-parrot-298.convex.cloud",
 ]);
 
 /** Values of FREECORD_TEST_ENV that positively mark a throwaway environment. */

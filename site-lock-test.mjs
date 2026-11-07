@@ -537,7 +537,7 @@ check("the legacy session marker cannot bypass the page scope", server.includes(
 // ---------------------------------------------------------------------------
 // 4. Live: a signed-out visitor is never asked for a lock, and cannot verify one
 // ---------------------------------------------------------------------------
-const anonymous = new ConvexHttpClient(process.env.CONVEX_URL || "https://academic-porcupine-929.convex.cloud");
+const anonymous = new ConvexHttpClient(process.env.CONVEX_URL || "https://greedy-parrot-298.convex.cloud");
 async function rejection(fn) {
   try {
     return { error: null, result: await fn() };

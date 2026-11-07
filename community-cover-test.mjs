@@ -16,7 +16,7 @@ function is(name, got, expected) {
   else bad(name, `got ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`);
 }
 
-const UPLOADED = "https://academic-porcupine-929.convex.cloud/api/storage/kg2abc123";
+const UPLOADED = "https://greedy-parrot-298.convex.cloud/api/storage/kg2abc123";
 
 // ---------------------------------------------------------------------------
 // The uploaded cover is used verbatim
