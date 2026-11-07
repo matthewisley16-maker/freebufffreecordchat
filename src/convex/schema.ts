@@ -1044,6 +1044,8 @@ const schema = defineSchema(
     platformSettings: defineTable({
       key: v.string(),
       announcement: v.optional(v.string()),
+      // When the notice above stops being shown. Absent = no end time.
+      announcementUntil: v.optional(v.number()),
       newCommunitiesEnabled: v.optional(v.boolean()),
       discoveryEnabled: v.optional(v.boolean()),
       updatedAt: v.optional(v.number()),

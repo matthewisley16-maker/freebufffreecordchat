@@ -1890,3 +1890,11 @@ html.fc-light .fc-sitegate-chip { background: rgba(0,0,0,.03); border-color: rgb
 html.fc-light .fc-sitegate-chip.active { background: rgba(124,92,246,.16); border-color: rgba(124,92,246,.45); color: #5b3fd6; }
 html.fc-light .fc-lock-card { background: rgba(0,0,0,.02); border-color: rgba(0,0,0,.08); }
 html.fc-light .fc-lock-title { color: #1c1b22; }
+
+/* Operator notice on the public home page (admin-set, optional, expiring) */
+.landing-notice { display: flex; align-items: flex-start; gap: 10px; max-width: 1232px; margin: 18px auto 0; padding: 12px 16px; border: 1px solid rgba(167, 139, 250, .28); border-radius: 12px; background: rgba(139, 92, 246, .1); color: #e9e5ff; font-size: 12px; line-height: 1.6; }
+.landing-notice p { margin: 0; overflow-wrap: anywhere; }
+.landing-notice strong { margin-right: 9px; font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #c4b5fd; white-space: nowrap; }
+.landing-notice .status-dot { margin-top: 6px; }
+@media (max-width: 850px) { .landing-notice { margin: 14px 25px 0; } }
+@media (max-width: 600px) { .landing-notice { margin: 12px 20px 0; font-size: 11px; } }

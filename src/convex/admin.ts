@@ -887,15 +887,24 @@ const DEFAULT_PLATFORM_SETTINGS = {
   discoveryEnabled: true,
 };
 
-/** Public (signed-in) view of the operator announcement banner. */
+/**
+ * The operator notice, as shown on the public home page and inside the app.
+ *
+ * Public on purpose: the home page is where a notice matters most, and it is read
+ * before anybody signs in. It returns ONLY the notice and when it ends — never any
+ * other platform setting — and it returns nothing once the chosen duration has
+ * passed. Expiry is decided here, not by the visitor's clock, so a device with a
+ * wrong time cannot keep an old notice on screen.
+ */
 export const platformBanner = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
     const row = await platformSettingsOf(ctx);
     const announcement = row?.announcement?.trim();
-    return announcement ? { announcement } : null;
+    if (!announcement) return null;
+    const until = row?.announcementUntil ?? null;
+    if (until !== null && until <= Date.now()) return null;
+    return { announcement, until };
   },
 });
 
@@ -909,6 +918,7 @@ export const getPlatformSettings = query({
     const row = await platformSettingsOf(ctx);
     return {
       announcement: row?.announcement ?? DEFAULT_PLATFORM_SETTINGS.announcement,
+      announcementUntil: row?.announcementUntil ?? null,
       newCommunitiesEnabled: row?.newCommunitiesEnabled ?? DEFAULT_PLATFORM_SETTINGS.newCommunitiesEnabled,
       discoveryEnabled: row?.discoveryEnabled ?? DEFAULT_PLATFORM_SETTINGS.discoveryEnabled,
       updatedAt: row?.updatedAt ?? null,
@@ -919,6 +929,8 @@ export const getPlatformSettings = query({
 export const updatePlatformSettings = mutation({
   args: {
     announcement: v.optional(v.string()),
+    /** Hours the notice stays up, counted from this save. 0 = no end time. */
+    announcementHours: v.optional(v.number()),
     newCommunitiesEnabled: v.optional(v.boolean()),
     discoveryEnabled: v.optional(v.boolean()),
   },
@@ -928,7 +940,18 @@ export const updatePlatformSettings = mutation({
     if (!isOwnerRole(role)) throw new ConvexError("Only Owner Admins can change platform-wide settings.");
     const row = await platformSettingsOf(ctx);
     const patch: Record<string, unknown> = { updatedAt: Date.now(), updatedBy: userId };
-    if (args.announcement !== undefined) patch.announcement = truncateText(args.announcement.trim(), 280);
+    if (args.announcement !== undefined) {
+      patch.announcement = truncateText(args.announcement.trim(), 280);
+      // An emptied notice must not leave an end time behind.
+      if (!patch.announcement) patch.announcementUntil = undefined;
+    }
+    if (args.announcementHours !== undefined) {
+      // Clamped: a typo can neither hide a notice immediately nor pin it forever
+      // by accident. The deadline is computed on the server so it cannot be
+      // back-dated from the browser.
+      const hours = Math.min(Math.max(Number(args.announcementHours) || 0, 0), 24 * 365);
+      patch.announcementUntil = hours > 0 ? Date.now() + hours * 3_600_000 : undefined;
+    }
     if (args.newCommunitiesEnabled !== undefined) patch.newCommunitiesEnabled = args.newCommunitiesEnabled;
     if (args.discoveryEnabled !== undefined) patch.discoveryEnabled = args.discoveryEnabled;
 

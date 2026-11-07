@@ -450,6 +450,9 @@ export default function AdminPanel() {
   // occasional three-digit one. Nothing is applied until Confirm.
   const [newPassword, setNewPassword] = useState("0000");
   const [settingsDraft, setSettingsDraft] = useState<{ announcement: string; newCommunitiesEnabled: boolean; discoveryEnabled: boolean } | null>(null);
+  // How long the home-page notice stays up, counted from the moment it is saved.
+  // 0 means "no end time" — it stays until somebody removes it.
+  const [announcementHours, setAnnouncementHours] = useState("24");
   const [editCommunity, setEditCommunity] = useState<null | { serverId: string; name: string; description: string; isPublic: boolean; locked: boolean; category: string; iconUrl: string | null }>(null);
   // The group picture an administrator picked but has NOT saved yet. Nothing is
   // uploaded until Save, so a Cancel leaves no orphaned file in storage.
@@ -1056,16 +1059,44 @@ export default function AdminPanel() {
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Announcement banner</label>
+                  <label className="text-sm font-medium">Notice on the home page</label>
                   <textarea
                     value={draft.announcement}
                     disabled={!actorIsOwner}
                     onChange={(e) => setSettingsDraft({ ...draft, announcement: e.target.value })}
                     rows={3}
                     maxLength={280}
-                    placeholder="Shown at the top of the app for everyone (leave blank to hide)."
+                    placeholder="Shown on the public home page and inside the app. Leave blank to hide it."
                     className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring disabled:opacity-60"
                   />
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium" htmlFor="announcement-hours">Show it for</label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="announcement-hours"
+                          type="number"
+                          min={0}
+                          max={8760}
+                          value={announcementHours}
+                          disabled={!actorIsOwner}
+                          onChange={(e) => setAnnouncementHours(e.target.value)}
+                          className="w-24"
+                        />
+                        <span className="text-xs text-muted-foreground">hours (0 = until you remove it)</span>
+                      </div>
+                    </div>
+                    {settings?.announcementUntil ? (
+                      <span className="text-xs text-muted-foreground">
+                        Currently hides {new Date(settings.announcementUntil).toLocaleString()}.
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Currently has no end time.</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    The clock starts when you press Save, so changing the number also restarts it.
+                  </p>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <div>
@@ -1090,19 +1121,36 @@ export default function AdminPanel() {
                   />
                 </div>
                 {actorIsOwner && (
-                  <Button
-                    disabled={busy}
-                    onClick={() => run(
-                      () => updatePlatformSettings({
-                        announcement: draft.announcement,
-                        newCommunitiesEnabled: draft.newCommunitiesEnabled,
-                        discoveryEnabled: draft.discoveryEnabled,
-                      }),
-                      "Platform settings saved.",
-                    )}
-                  >
-                    Save settings
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      disabled={busy}
+                      onClick={() => run(
+                        () => updatePlatformSettings({
+                          announcement: draft.announcement,
+                          announcementHours: Number(announcementHours) || 0,
+                          newCommunitiesEnabled: draft.newCommunitiesEnabled,
+                          discoveryEnabled: draft.discoveryEnabled,
+                        }),
+                        "Platform settings saved.",
+                      )}
+                    >
+                      Save settings
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="text-destructive"
+                      disabled={busy || !draft.announcement.trim()}
+                      onClick={() => run(
+                        async () => {
+                          await updatePlatformSettings({ announcement: "" });
+                          setSettingsDraft({ ...draft, announcement: "" });
+                        },
+                        "Notice removed.",
+                      )}
+                    >
+                      <Trash2 className="mr-1 size-4" /> Remove notice
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>

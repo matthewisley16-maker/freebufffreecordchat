@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { ArrowRight, ArrowUpRight, AudioLines, Check, ChevronDown, Compass, Hash, Headphones, Heart, Menu, MessageCircle, Plus, Search, Send, Users, Volume2, X } from "lucide-react";
 
 export function FreecordMark({ small = false }: { small?: boolean }) {
@@ -24,9 +26,27 @@ export function ChatPreview() {
     <aside className="preview-members"><div className="member-heading">THE GOOD COMPANY <span>5</span></div>{[{ name: "Jamie Chen", color: "peach", initials: "JC", status: "Making something new" }, { name: "Alex Rivera", color: "lavender", initials: "AR", status: "In the zone 🎧" }, { name: "Sam Taylor", color: "sage", initials: "ST", status: "Here for the good vibes" }, { name: "Morgan Lee", color: "sand", initials: "ML", status: "Taking it slow" }, { name: "Riley Park", color: "blue", initials: "RP", status: "Probably sketching" }].map(m => <div className="member-item" key={m.name}><span className={`avatar ${m.color}`}>{m.initials}<i /></span><div><strong>{m.name}</strong><small>{m.status}</small></div></div>)}<div className="invite-card"><span>More friends.<br />More possibilities.</span><Link to="/auth?returnTo=/dashboard">Invite your people <ArrowUpRight size={14} /></Link></div></aside>
   </div>;
 }
+/**
+ * The operator notice on the public home page.
+ *
+ * It is read by signed-out visitors, so the query is public; whether it is still
+ * live is decided by the server. When there is no notice it renders nothing, so
+ * the home page is unchanged by default.
+ */
+function LandingNotice() {
+  const notice = useQuery(api.admin.platformBanner, {});
+  if (!notice?.announcement) return null;
+  return (
+    <div className="landing-notice" role="status">
+      <span className="status-dot" />
+      <p><strong>Notice</strong>{notice.announcement}</p>
+    </div>
+  );
+}
+
 export default function Landing() {
   const [menu, setMenu] = useState(false);
-  return <div className="freecord-landing"><nav className="landing-nav"><Link to="/" aria-label="Freecord home"><FreecordMark /></Link><div className={`nav-links ${menu ? "mobile-open" : ""}`}><a href="#experience">The experience</a><a href="#why-freecord">Why Freecord</a><a href="#community">For communities <ArrowUpRight size={12} /></a></div><div className="nav-actions"><Link to="/auth" className="login-link">Log in</Link><Link to="/auth?returnTo=/dashboard" className="button-dark nav-cta">Open Freecord <ArrowUpRight size={15} /></Link><button className="mobile-menu" aria-label="Toggle navigation" onClick={() => setMenu(!menu)}>{menu ? <X /> : <Menu />}</button></div></nav>
+  return <div className="freecord-landing"><LandingNotice /><nav className="landing-nav"><Link to="/" aria-label="Freecord home"><FreecordMark /></Link><div className={`nav-links ${menu ? "mobile-open" : ""}`}><a href="#experience">The experience</a><a href="#why-freecord">Why Freecord</a><a href="#community">For communities <ArrowUpRight size={12} /></a></div><div className="nav-actions"><Link to="/auth" className="login-link">Log in</Link><Link to="/auth?returnTo=/dashboard" className="button-dark nav-cta">Open Freecord <ArrowUpRight size={15} /></Link><button className="mobile-menu" aria-label="Toggle navigation" onClick={() => setMenu(!menu)}>{menu ? <X /> : <Menu />}</button></div></nav>
     <main><motion.section className="landing-hero" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .65 }}><div className="hero-copy"><div className="eyebrow"><span className="status-dot" />A PLACE TO BELONG</div><h1>Your people.<br />Your place<span className="accent-period">.</span></h1><p>A place to talk, connect, and build communities.<br className="desktop-break" /> Text, voice, video, and the people who matter.</p><div className="hero-actions"><Link className="button-dark" to="/auth">Create Account <ArrowUpRight size={18} /></Link><Link className="button-teal" to="/auth">Log In</Link><Link className="hero-secondary" to="/auth?returnTo=/dashboard">Explore Communities <ArrowRight size={16} /></Link></div><div className="hero-footnote"><span className="tiny-avatars"><span className="peach">J</span><span className="lavender">A</span><span className="sage">S</span></span><span>Good conversations. Great company. <Heart size={12} /></span></div></div><div className="hero-aside"><div className="orbit-word">a little closer, wherever you are</div><div className="hero-flower">✳</div><div className="floating-note note-one"><span className="status-dot" />Your kind of corner of the internet.</div><div className="floating-note note-two"><MessageCircle size={16} />Less scrolling. More connecting.</div><span className="hero-spark">✧</span></div></motion.section>
     <section id="experience" className="experience-section"><div className="preview-caption"><span><span className="status-dot" />THIS IS WHAT BELONGING LOOKS LIKE</span><span>Built for conversations, not algorithms <ArrowDownIcon /></span></div><ChatPreview /><div className="under-preview"><span><Check size={14} />Free to get started</span><span><Check size={14} />No noisy feeds</span><span><Check size={14} />Just your people</span></div></section>
     <section id="why-freecord" className="features-section"><div className="section-heading"><div><span className="eyebrow">EVERYTHING YOU NEED TO CONNECT</span><h2>A space that feels like you.</h2></div><p>Communities, direct messages, voice, video, friends, and following.<br />Freecord is built for real conversation.</p></div><div className="feature-grid">{[{ icon: Users, n: "01", title: "Communities", text: "Create or join communities with text, voice, and video channels, roles, and moderation tools." }, { icon: MessageCircle, n: "02", title: "Direct messages", text: "Private one-to-one and group conversations with replies, reactions, edits, pins, and file sharing." }, { icon: Volume2, n: "03", title: "Voice chat", text: "Hop into persistent voice rooms with mute, deafen, and speaking indicators. No ringing required." }, { icon: AudioLines, n: "04", title: "Video chat", text: "Turn on your camera, switch layouts, and share your screen over peer-to-peer WebRTC." }, { icon: Heart, n: "05", title: "Friends", text: "Send requests, accept or decline, and keep a friends list that actually respects your privacy." }, { icon: Compass, n: "06", title: "Discover", text: "Browse public communities by category, see member counts, and join in one click." }].map(f => <article className="feature-card" key={f.n}><div className="feature-top"><f.icon size={23} /><span>{f.n}</span></div><h3>{f.title}</h3><p>{f.text}</p></article>)}</div></section>
