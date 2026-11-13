@@ -1,7 +1,7 @@
 import { recordServiceError } from "@/lib/diagnostics";
 import { requestReport } from "@/lib/report-problem";
-import { AlertTriangle } from "lucide-react";
 import { Component, Fragment, type ErrorInfo, type ReactNode } from "react";
+import FriendlyError from "@/components/error/FriendlyError";
 
 /**
  * FeatureBoundary — an in-app error boundary.
@@ -50,39 +50,19 @@ export class FeatureBoundary extends Component<
       if (this.props.fallback !== undefined) return this.props.fallback;
       const label = this.props.label ?? "This part of Freecord";
       return (
-        <div
-          role="alert"
-          className={
-            this.props.className ??
-            `flex ${this.props.block ? "h-full min-h-40" : ""} flex-col items-center justify-center gap-2 p-6 text-center text-muted-foreground`
-          }
-        >
-          <AlertTriangle className="size-5 opacity-70" aria-hidden="true" />
-          <p className="text-sm font-medium text-foreground">Something went wrong</p>
-          <p className="text-xs">{label} couldn&apos;t load — the rest of Freecord is still working.</p>
-          <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
-            <button
-              type="button"
-              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
-              onClick={this.reset}
-            >
-              Try again
-            </button>
-            {/* Sends the real error text to the Admin Panel, with an optional note. */}
-            <button
-              type="button"
-              className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
-              onClick={() =>
-                requestReport({
-                  message: this.state.error?.message || "Unknown error",
-                  stack: this.state.error?.stack,
-                  source: this.props.label ?? "feature",
-                })
-              }
-            >
-              Report to admin
-            </button>
-          </div>
+        <div role="alert" className={this.props.className}>
+          <FriendlyError
+            compact
+            label={label}
+            onRetry={this.reset}
+            onReport={() =>
+              requestReport({
+                message: this.state.error?.message || "Unknown error",
+                stack: this.state.error?.stack,
+                source: this.props.label ?? "feature",
+              })
+            }
+          />
         </div>
       );
     }

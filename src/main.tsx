@@ -4,6 +4,7 @@ import SiteLockGate from "@/components/SiteLockGate";
 import { FeatureBoundary } from "@/components/ui/feature-boundary";
 import ReportProblem from "@/components/ReportProblem";
 import { queueReport } from "@/lib/report-problem";
+import FriendlyError from "@/components/error/FriendlyError";
 import { BrandSplash, DiagnosticsWatcher, GlobalConnectionBanner, ServiceStatusScreen } from "@/components/ServiceStatus";
 import { useServiceStatus } from "@/hooks/use-service-status";
 import { recordServiceError } from "@/lib/diagnostics";
@@ -142,44 +143,18 @@ class RootErrorBoundary extends React.Component<
       // storage maintenance must NEVER be dressed up as the reason the app is
       // unavailable. This is an honest, retryable message and nothing more.
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
-          <div className="max-w-lg text-center">
-            <p className="text-sm font-semibold">Something went wrong</p>
-            <p className="mt-2 text-xs text-muted-foreground break-words">
-              {this.state.message || "Freecord couldn't finish loading. Please try again."}
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <button
-                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium"
-                onClick={() => window.location.reload()}
-              >
-                Try again
-              </button>
-              {/* The whole React root crashed, so the Convex-backed dialog cannot
-                  mount here. Queue the report instead; the next successful load
-                  sends it to the Admin Panel automatically. */}
-              <button
-                className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-medium text-destructive"
-                onClick={() => {
-                  queueReport({ message: this.state.message, stack: this.state.stack, source: "root" });
-                  this.setState({ queued: true });
-                }}
-              >
-                Report to admin
-              </button>
-            </div>
-            {this.state.queued && (
-              <p className="mt-2 text-xs text-emerald-300">
-                Saved — it will be sent to the Admin Panel the next time Freecord loads.
-              </p>
-            )}
-            {this.state.stack && (
-              <pre className="mt-3 text-left text-[10px] leading-4 text-muted-foreground/80 max-h-40 overflow-auto rounded border border-border/60 p-2">
-                {this.state.stack}
-              </pre>
-            )}
-          </div>
-        </div>
+        <FriendlyError
+          title="Oopsie — that didn't load."
+          text="That's our fault, not yours. Give it a second and refresh the page — your messages and communities are safe."
+          message={this.state.message}
+          stack={this.state.stack}
+          onRetry={() => window.location.reload()}
+          onReport={() => {
+            queueReport({ message: this.state.message, stack: this.state.stack, source: "root" });
+            this.setState({ queued: true });
+          }}
+          reportNote={this.state.queued ? "Saved — it will be sent to the Admin Panel the next time Freecord loads." : undefined}
+        />
       );
     }
     return this.props.children;

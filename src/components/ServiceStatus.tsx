@@ -9,6 +9,7 @@ import {
 } from "@/lib/diagnostics";
 import { PHASE_MESSAGES, statusCopy, type ServiceStatus } from "@/lib/service-status";
 import { useServiceStatus, type ServiceStatusHandle } from "@/hooks/use-service-status";
+import FreecordBuddy from "@/components/error/FreecordBuddy";
 
 /**
  * Themed fallbacks for every "not fully usable" state.
@@ -104,8 +105,9 @@ export function ServiceStatusScreen({ handle, children }: ScreenProps) {
     <div className="fc-status-shell">
       <div className="fc-status-card">
         <FreecordMark small />
-        <div className={`fc-status-icon ${status.phase}`}>
-          <Icon aria-hidden="true" />
+        <div className={`fc-status-mascot ${status.phase}`}>
+          <FreecordBuddy size={104} />
+          <span className="fc-status-mascot-badge"><Icon aria-hidden="true" /></span>
         </div>
         <h1 className="fc-status-title">{copy.title}</h1>
         <p className="fc-status-detail">{copy.detail}</p>
