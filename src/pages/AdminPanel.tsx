@@ -385,6 +385,8 @@ export default function AdminPanel() {
   // tabs genuinely need `stats` and the synthetic-data audit, but the tab lists
   // do not: nothing is fetched for a tab the admin is not looking at (`"skip"`).
   const [tab, setTab] = useState("users");
+  // "Report to admin" inbox: open reports first, or every report ever sent.
+  const [reportStatus, setReportStatus] = useState<"open" | "all">("open");
   // "My deleted messages": only the ACTIVE tab is subscribed (see the note above).
   const [deletedQuery, setDeletedQuery] = useState("");
   const [deletedSearch, setDeletedSearch] = useState("");
@@ -413,6 +415,8 @@ export default function AdminPanel() {
   const communities = useQuery(api.admin.listCommunities, tab === "communities" && panelOpen ? {} : "skip");
   const auditLogs = useQuery(api.admin.listAuditLogs, tab === "audit" && panelOpen ? { limit: 150 } : "skip");
   const settings = useQuery(api.admin.getPlatformSettings, tab === "settings" && panelOpen ? {} : "skip");
+  const reportInbox = useQuery(api.reports.list, tab === "reports" && panelOpen ? { status: reportStatus } : "skip");
+  const resolveReport = useMutation(api.reports.setResolved);
   // Read-only diagnostic: detects synthetic/test records that have leaked into
   // production. It never deletes anything — it only reports, so a moderator can
   // decide whether to run the verified cleanup operation.
@@ -708,6 +712,7 @@ export default function AdminPanel() {
             <TabsTrigger value="deleted">Deleted Messages</TabsTrigger>
             <TabsTrigger value="moderation">Hidden (only for you)</TabsTrigger>
             <TabsTrigger value="audit">Audit Log</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
             {/* Destructive maintenance lives in its own category, deliberately
                 away from the everyday tabs, and every action inside it is
                 re-authorized server-side. */}
@@ -1058,6 +1063,93 @@ export default function AdminPanel() {
           </TabsContent>
 
           {/* ---------------- Platform settings + optional Admin PIN ---------------- */}
+          {/* ---------------- Error reports ("Report to admin") ---------------- */}
+          <TabsContent value="reports" className="mt-4">
+            <Card className="border-white/10 bg-card/40">
+              <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-base">Error reports</CardTitle>
+                  <CardDescription>
+                    Sent by members with “Report to admin” when something went wrong. Each one includes the error text,
+                    the page it happened on and, if they wrote one, their note.
+                  </CardDescription>
+                </div>
+                <Select value={reportStatus} onValueChange={(value) => setReportStatus(value === "all" ? "all" : "open")}>
+                  <SelectTrigger className="w-full sm:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Open only</SelectItem>
+                    <SelectItem value="all">All reports</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {reportInbox === undefined && (
+                  <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>
+                )}
+                {reportInbox && reportInbox.reports.length === 0 && (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    {reportStatus === "open" ? "No open error reports. That's good news." : "No error reports have been sent yet."}
+                  </p>
+                )}
+                {reportInbox?.reports.map((report) => (
+                  <div key={report._id} className="rounded-lg border border-white/8 bg-white/[0.02] p-3">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {report.name}
+                        {report.username ? ` (@${report.username})` : ""}
+                      </span>
+                      <span>· {new Date(report.createdAt).toLocaleString()}</span>
+                      <Badge
+                        variant="outline"
+                        className={
+                          report.status === "resolved"
+                            ? "border-emerald-400/30 text-emerald-300"
+                            : "border-amber-400/30 text-amber-300"
+                        }
+                      >
+                        {report.status === "resolved" ? "Resolved" : "Open"}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-sm break-words">{report.message}</p>
+                    {report.note && (
+                      <p className="mt-1 text-xs break-words text-muted-foreground">
+                        <span className="text-foreground">They wrote:</span> {report.note}
+                      </p>
+                    )}
+                    <p className="mt-1 text-[11px] break-all text-muted-foreground">
+                      {report.url ?? "unknown page"}
+                      {report.source ? ` · ${report.source}` : ""}
+                    </p>
+                    {report.stack && (
+                      <details className="mt-1 text-[11px] text-muted-foreground">
+                        <summary className="cursor-pointer">Technical details</summary>
+                        <pre className="mt-1 max-h-40 overflow-auto rounded border border-white/10 p-2 whitespace-pre-wrap break-words">
+                          {report.stack}
+                        </pre>
+                      </details>
+                    )}
+                    <div className="mt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const next = report.status !== "resolved";
+                          void resolveReport({ reportId: report._id, resolved: next })
+                            .then(() => toast.success(next ? "Report marked resolved." : "Report reopened."))
+                            .catch((e) => toast.error(friendly(e, "Could not update the report.")));
+                        }}
+                      >
+                        {report.status === "resolved" ? "Reopen" : "Mark resolved"}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="settings" className="mt-4">
             <div className="space-y-4">
             {/* Optional Admin PIN: per-administrator, opt-in, never forced. */}

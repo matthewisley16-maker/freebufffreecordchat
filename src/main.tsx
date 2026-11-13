@@ -2,6 +2,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import SiteLockGate from "@/components/SiteLockGate";
 import { FeatureBoundary } from "@/components/ui/feature-boundary";
+import ReportProblem from "@/components/ReportProblem";
+import { queueReport } from "@/lib/report-problem";
 import { BrandSplash, DiagnosticsWatcher, GlobalConnectionBanner, ServiceStatusScreen } from "@/components/ServiceStatus";
 import { useServiceStatus } from "@/hooks/use-service-status";
 import { recordServiceError } from "@/lib/diagnostics";
@@ -117,9 +119,9 @@ class ToolbarErrorBoundary extends React.Component<
 /** Hard guard so runtime errors never leave the preview as a blank page. */
 class RootErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean; message: string; stack: string }
+  { hasError: boolean; message: string; stack: string; queued: boolean }
 > {
-  state = { hasError: false, message: "", stack: "" };
+  state = { hasError: false, message: "", stack: "", queued: false };
   static getDerivedStateFromError(error: Error) {
     return {
       hasError: true,
@@ -145,12 +147,31 @@ class RootErrorBoundary extends React.Component<
             <p className="mt-2 text-xs text-muted-foreground break-words">
               {this.state.message || "Freecord couldn't finish loading. Please try again."}
             </p>
-            <button
-              className="mt-4 rounded-md border border-border px-3 py-1.5 text-xs font-medium"
-              onClick={() => window.location.reload()}
-            >
-              Try again
-            </button>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium"
+                onClick={() => window.location.reload()}
+              >
+                Try again
+              </button>
+              {/* The whole React root crashed, so the Convex-backed dialog cannot
+                  mount here. Queue the report instead; the next successful load
+                  sends it to the Admin Panel automatically. */}
+              <button
+                className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-medium text-destructive"
+                onClick={() => {
+                  queueReport({ message: this.state.message, stack: this.state.stack, source: "root" });
+                  this.setState({ queued: true });
+                }}
+              >
+                Report to admin
+              </button>
+            </div>
+            {this.state.queued && (
+              <p className="mt-2 text-xs text-emerald-300">
+                Saved — it will be sent to the Admin Panel the next time Freecord loads.
+              </p>
+            )}
             {this.state.stack && (
               <pre className="mt-3 text-left text-[10px] leading-4 text-muted-foreground/80 max-h-40 overflow-auto rounded border border-border/60 p-2">
                 {this.state.stack}
@@ -268,6 +289,7 @@ createRoot(document.getElementById("root")!).render(
             </Routes>
           </Suspense>
         </BrowserRouter>
+        <ReportProblem />
         <Toaster theme="dark" />
       </ConvexAuthProvider>
     </RootErrorBoundary>

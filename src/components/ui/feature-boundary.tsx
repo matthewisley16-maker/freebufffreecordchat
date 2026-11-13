@@ -1,4 +1,5 @@
 import { recordServiceError } from "@/lib/diagnostics";
+import { requestReport } from "@/lib/report-problem";
 import { AlertTriangle } from "lucide-react";
 import { Component, Fragment, type ErrorInfo, type ReactNode } from "react";
 
@@ -59,13 +60,29 @@ export class FeatureBoundary extends Component<
           <AlertTriangle className="size-5 opacity-70" aria-hidden="true" />
           <p className="text-sm font-medium text-foreground">Something went wrong</p>
           <p className="text-xs">{label} couldn&apos;t load — the rest of Freecord is still working.</p>
-          <button
-            type="button"
-            className="mt-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
-            onClick={this.reset}
-          >
-            Try again
-          </button>
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+              onClick={this.reset}
+            >
+              Try again
+            </button>
+            {/* Sends the real error text to the Admin Panel, with an optional note. */}
+            <button
+              type="button"
+              className="rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+              onClick={() =>
+                requestReport({
+                  message: this.state.error?.message || "Unknown error",
+                  stack: this.state.error?.stack,
+                  source: this.props.label ?? "feature",
+                })
+              }
+            >
+              Report to admin
+            </button>
+          </div>
         </div>
       );
     }

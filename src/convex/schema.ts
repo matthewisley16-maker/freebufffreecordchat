@@ -807,6 +807,27 @@ const schema = defineSchema(
       .index("by_user", ["userId"])
       .index("by_user_read", ["userId", "read"]),
 
+    // ---------- Error reports ("Report to admin") ----------
+    // One row per report a member sends from an error state. Carries only what
+    // the error looked like, the page, and the optional note they wrote.
+    errorReports: defineTable({
+      userId: v.optional(v.id("users")),
+      name: v.string(),
+      username: v.optional(v.string()),
+      message: v.string(),
+      /** What the member wrote about what happened — optional. */
+      note: v.optional(v.string()),
+      stack: v.optional(v.string()),
+      url: v.optional(v.string()),
+      /** Where it was caught: feature name, window, promise or root. */
+      source: v.optional(v.string()),
+      status: v.union(v.literal("open"), v.literal("resolved")),
+      resolvedAt: v.optional(v.number()),
+      resolvedBy: v.optional(v.id("users")),
+    })
+      .index("by_user", ["userId"])
+      .index("by_status", ["status"]),
+
     // ---------- Voice / video ----------
     voiceSessions: defineTable({
       channelId: v.id("channels"),
