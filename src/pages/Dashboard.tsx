@@ -20,6 +20,7 @@ import FullProfile from "@/components/profile/FullProfile";
 import ProfileEditor from "@/components/profile/ProfileEditor";
 import SettingsPanel from "@/components/dashboard/SettingsPanel";
 import CommunitySettings from "@/components/dashboard/CommunitySettings";
+import NotificationPrompt from "@/components/dashboard/NotificationPrompt";
 import ServerRail from "@/components/dashboard/ServerRail";
 import NewMessageDialog from "@/components/dashboard/NewMessageDialog";
 import InviteToServerDialog from "@/components/dashboard/InviteToServerDialog";
@@ -1448,6 +1449,11 @@ export default function Dashboard() {
 
         <FeatureBoundary fallback={null}>
           <AnnouncementBanner />
+        </FeatureBoundary>
+
+        {/* The in-app "allow notifications" question — once, inline, dismissible. */}
+        <FeatureBoundary fallback={null}>
+          <NotificationPrompt />
         </FeatureBoundary>
 
         {notifOpen && (
