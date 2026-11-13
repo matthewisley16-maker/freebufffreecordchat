@@ -1,14 +1,9 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { query } from "./_generated/server";
-import { avatarUrlOf, displayNameOf, profileOf, settingsOf } from "./lib";
+import { avatarUrlOf, displayNameOf, presenceInfoOf, profileOf, settingsOf } from "./lib";
 import { communityCategoryOf } from "../lib/community-categories";
 import { plainSummary } from "../lib/message-format";
-import type { QueryCtx } from "./_generated/server";
-
-async function presenceOf(ctx: QueryCtx, userId: string) {
-  return null as null;
-}
 
 /**
  * Global search across people, communities, the user's channels, and the
@@ -24,7 +19,7 @@ export const global = query({
     if (!userId || term.length < 1) return empty;
     const want = filter ?? "all";
     const out: {
-      people: { userId: string; username: string; displayName: string; avatarColor: string; avatarUrl: string | null; decorationId: string | null }[];
+      people: { userId: string; username: string; displayName: string; avatarColor: string; avatarUrl: string | null; decorationId: string | null; presence: string; lastSeen: number | null }[];
       communities: { serverId: string; name: string; description: string; iconColor: string; iconUrl: string | null; memberCount: number; category: string }[];
       messages: { messageId: string; body: string; author: string; channelName: string; communityName: string; createdAt: number }[];
       channels: { channelId: string; name: string; communityName: string }[];
@@ -39,6 +34,9 @@ export const global = query({
         const settings = await settingsOf(ctx, profile.userId);
         if (settings?.searchable === false) continue;
         if (!`${profile.displayName} ${user.username ?? ""}`.toLowerCase().includes(term)) continue;
+        // Same effective presence the member lists use: invisible members and
+        // hidden presence read as offline here too, never as a giveaway.
+        const presence = await presenceInfoOf(ctx, profile.userId, userId);
         out.people.push({
           userId: profile.userId,
           username: user.username ?? "",
@@ -46,6 +44,8 @@ export const global = query({
           avatarColor: profile.avatarColor ?? "violet",
           avatarUrl: await avatarUrlOf(ctx, profile.userId),
           decorationId: profile.decorationId ?? null,
+          presence: presence.status,
+          lastSeen: presence.lastSeen,
         });
         if (out.people.length >= 10) break;
       }
@@ -129,7 +129,6 @@ export const global = query({
     }
 
     void profileOf;
-    void presenceOf;
     return out;
   },
 });

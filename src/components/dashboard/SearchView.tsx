@@ -84,7 +84,17 @@ export default function SearchView({
           <SectionHeader title={`PEOPLE — ${peopleList.length}`} />
           {peopleList.map((p) => (
             <button key={p.userId} className="fc-row fc-row-main" onClick={() => onOpenProfile(p.userId)}>
-              <Avatar name={p.displayName} color={p.avatarColor} url={p.avatarUrl} decorationId={p.decorationId} />
+              {/* Presence dot, including a grey one for offline, so the search
+                  result answers "is this person around?" without opening them. */}
+              <Avatar
+                name={p.displayName}
+                color={p.avatarColor}
+                url={p.avatarUrl}
+                decorationId={p.decorationId}
+                presence={p.presence}
+                lastSeen={p.lastSeen}
+                showAllStates
+              />
               <span><strong>{p.displayName}</strong><small>@{p.username}</small></span>
             </button>
           ))}
