@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -268,11 +268,23 @@ export default function ServerPermissions({ serverId, defaultTab = "roles" }: { 
                   channelId={activeChannelId as Id<"channels">}
                   roles={roleList.map((r) => ({ id: r._id as string, name: r.name }))}
                   busy={busy}
-                  onSave={(overrides) => run(() => updateOverrides({ channelId: activeChannelId as Id<"channels">, overrides: overrides as never }), "Channel permissions saved.")}
+                  onSave={async (overrides) => {
+                    setBusy(true);
+                    try {
+                      await updateOverrides({ channelId: activeChannelId as Id<"channels">, overrides: overrides as never });
+                      toast.success("Channel permissions saved.");
+                      return true;
+                    } catch (e) {
+                      toast.error(friendly(e, "Could not save channel permissions."));
+                      return false;
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
                 />
               )}
               <p className="fc-muted">
-                Click a cell to cycle: <strong>inherit → allow → deny</strong>. “Inherit” uses the role&apos;s normal permissions.
+                Click a cell to cycle: <strong>inherit → allow → deny</strong>, then press <strong>Save changes</strong>. “Inherit” uses the role&apos;s normal permissions.
                 Try #announcements = deny “Send messages” for <em>member</em>, or #staff = deny “View channel” for <em>member</em>.
               </p>
             </>
@@ -309,11 +321,23 @@ function ChannelOverrideGrid({
   channelId: Id<"channels">;
   roles: { id: string; name: string }[];
   busy: boolean;
-  onSave: (overrides: Override[]) => void;
+  onSave: (overrides: Override[]) => Promise<boolean>;
 }) {
   const data = useQuery(api.communities.channelPermissions, { channelId });
+  // Edits are a DRAFT until "Save changes" is pressed: a stray click on the
+  // matrix must never silently change what members can do.
+  const serverOverrides = (data?.overrides ?? []) as Override[];
+  const snapshot = JSON.stringify(serverOverrides);
+  const [draft, setDraft] = useState<Override[]>(serverOverrides);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    setDraft(serverOverrides);
+    // `snapshot` (not the array identity) so an unrelated re-render keeps drafts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId, snapshot]);
   if (!data) return <p className="fc-muted">Loading channel permissions…</p>;
-  const overrides = data.overrides as Override[];
+  const overrides = draft;
+  const dirty = JSON.stringify(draft) !== snapshot;
   const targets = [
     { key: "everyone", label: "@everyone" },
     { key: "admin", label: "Admin" },
@@ -344,7 +368,7 @@ function ChannelOverrideGrid({
                       className={`fc-perm-cell ${state}`}
                       disabled={busy}
                       aria-label={`${t.label} ${p}: ${state}`}
-                      onClick={() => onSave(withOverride(overrides, t.key, p, state === "neutral" ? "allow" : state === "allow" ? "deny" : "neutral"))}
+                      onClick={() => setDraft(withOverride(overrides, t.key, p, state === "neutral" ? "allow" : state === "allow" ? "deny" : "neutral"))}
                     >
                       {state === "allow" ? "✓" : state === "deny" ? "✕" : "–"}
                     </button>
@@ -355,6 +379,32 @@ function ChannelOverrideGrid({
           ))}
         </tbody>
       </table>
+
+      <div className="fc-override-actions">
+        <Button
+          size="sm"
+          disabled={busy || saving || !dirty}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await onSave(draft);
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          {saving || busy ? "Saving…" : "Save changes"}
+        </Button>
+        {dirty && (
+          <>
+            <span className="fc-muted">Unsaved changes</span>
+            <Button size="sm" variant="ghost" disabled={saving || busy} onClick={() => setDraft(serverOverrides)}>
+              Reset
+            </Button>
+          </>
+        )}
+        {!dirty && <span className="fc-muted">Everything here is saved.</span>}
+      </div>
     </div>
   );
 }

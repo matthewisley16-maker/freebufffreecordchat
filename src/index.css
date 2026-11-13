@@ -1580,6 +1580,7 @@ html.fc-light .fc-rail-folder-count { background: #e4e3ee; color: #2a2836; }
 .fc-member-row-name small { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #8b87a0; }
 .fc-member-row-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
 .fc-perms-field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #b7b1cc; }
+.fc-override-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
 .fc-override-scroll { overflow-x: auto; border: 1px solid rgba(255,255,255,.07); border-radius: 10px; }
 .fc-override-table { border-collapse: collapse; width: 100%; font-size: 11px; }
 .fc-override-table th, .fc-override-table td { padding: 5px 7px; text-align: center; border-bottom: 1px solid rgba(255,255,255,.06); white-space: nowrap; }
