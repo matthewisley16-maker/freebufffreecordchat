@@ -8,8 +8,9 @@ import ProfileAvatar from "./ProfileAvatar";
 import ProfileEffect from "./ProfileEffect";
 import { BADGES, DECORATIONS, EFFECTS, FRAMES, NAME_EFFECTS, NAME_FONTS, NAMEPLATES, THEMES, WIDGET_TYPES, nameStyle, plateStyle } from "@/lib/cosmetics";
 import { toSafeArray } from "@/lib/collection";
+import { downloadProfileBackup, restoreProfileBackup } from "@/lib/profile-backup";
 import { toast } from "sonner";
-import { ImagePlus, RotateCcw, Save, Trash2, X } from "lucide-react";
+import { Download, ImagePlus, RotateCcw, Save, Trash2, Upload, X } from "lucide-react";
 
 const MAX_IMAGE = 5 * 1024 * 1024;
 const VISIBILITY = [
@@ -35,6 +36,7 @@ export default function ProfileEditor({ onClose }: { onClose: () => void }) {
   const appearance = useQuery(api.profiles.getAppearance, {});
   const save = useMutation(api.profiles.updateCustomization);
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
+  const saveAppearance = useMutation(api.profiles.updateAppearance);
 
   const [tab, setTab] = useState<"profile" | "cosmetics" | "widgets" | "privacy">("profile");
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -45,6 +47,9 @@ export default function ProfileEditor({ onClose }: { onClose: () => void }) {
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const avatarInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
+  const restoreInput = useRef<HTMLInputElement>(null);
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [restoreBusy, setRestoreBusy] = useState(false);
 
   // Seed the draft from the saved profile once loaded.
   useEffect(() => {
@@ -145,6 +150,37 @@ export default function ProfileEditor({ onClose }: { onClose: () => void }) {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save your profile.");
     } finally { setBusy(false); }
+  }
+
+  async function downloadBackup() {
+    if (!me) return;
+    setBackupBusy(true);
+    try {
+      await downloadProfileBackup(me, appearance);
+      toast.success("Profile backup downloaded — keep it somewhere safe.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not build your backup.");
+    } finally { setBackupBusy(false); }
+  }
+
+  async function restoreBackup(file: File) {
+    if (dirty && !window.confirm("Restoring will replace the changes you haven't saved. Continue?")) return;
+    setRestoreBusy(true);
+    try {
+      const message = await restoreProfileBackup(file, {
+        generateUploadUrl: () => generateUploadUrl({}),
+        saveProfile: (args) => save(args as Parameters<typeof save>[0]),
+        saveAppearance: (args) => saveAppearance(args as Parameters<typeof saveAppearance>[0]),
+      });
+      // Re-seed the editor from the freshly restored profile.
+      setDraft(null);
+      setAvatarPreview(null);
+      setBannerPreview(null);
+      setDirty(false);
+      toast.success(message);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not restore that backup.");
+    } finally { setRestoreBusy(false); }
   }
 
   const themeColors = useMemo(() => THEMES.find((t) => t.id === draft?.theme)?.colors, [draft?.theme]);
@@ -274,6 +310,33 @@ export default function ProfileEditor({ onClose }: { onClose: () => void }) {
               {draft.socialLinks.length < 8 && (
                 <Button size="sm" variant="outline" onClick={() => patch({ socialLinks: [...draft.socialLinks, { label: "", url: "" }] })}>Add link</Button>
               )}
+
+              <h3><Download size={16} /> Back up &amp; restore</h3>
+              <p className="fc-muted">
+                Download one file with your whole profile inside it — picture, banner, theme, colours,
+                decorations, badges and widgets. Keep it somewhere safe. If your profile is ever lost or
+                replaced, restore that file here and it all comes back.
+              </p>
+              <div className="fc-icon-actions">
+                <Button size="sm" variant="outline" onClick={downloadBackup} disabled={backupBusy || restoreBusy}>
+                  <Download className="mr-1 h-4 w-4" /> {backupBusy ? "Preparing your file…" : "Download my profile"}
+                </Button>
+                <input
+                  ref={restoreInput}
+                  type="file"
+                  accept="application/json,.json"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (file) void restoreBackup(file);
+                  }}
+                />
+                <Button size="sm" variant="outline" onClick={() => restoreInput.current?.click()} disabled={backupBusy || restoreBusy}>
+                  <Upload className="mr-1 h-4 w-4" /> {restoreBusy ? "Restoring…" : "Restore from file"}
+                </Button>
+              </div>
+              <p className="fc-muted">The file only ever holds your profile: never your password, email or account role.</p>
             </section>
           )}
 
