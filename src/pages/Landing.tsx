@@ -58,8 +58,6 @@ export default function Landing() {
 
   return (
     <div className="freecord-landing">
-      <LandingNotice />
-
       <header className="landing-nav">
         <Link to="/" aria-label="Freecord home" className="landing-logo"><FreecordMark /></Link>
 
@@ -88,6 +86,9 @@ export default function Landing() {
       </header>
 
       <main>
+        {/* Sits under the nav tabs, not above the whole site header. */}
+        <LandingNotice />
+
         <section className="landing-hero">
           <motion.div
             className="hero-copy"
