@@ -1,7 +1,9 @@
 {
-  "name": "vite-template",
+  "name": "freecord-chat",
   "private": true,
   "version": "0.0.0",
+  "description": "Freecord Chat — communities, channels, direct messages, profiles and an admin panel.",
+  "homepage": "https://freecordchat.freebuff.page",
   "type": "module",
   "scripts": {
     "dev": "vite",

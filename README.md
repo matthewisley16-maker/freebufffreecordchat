@@ -1,3 +1,11 @@
+# Freecord Chat
+
+**Live site: https://freecordchat.freebuff.page**
+
+Freecord Chat is a community chat app — communities, channels, direct messages,
+voice rooms, member profiles with full customization, and an Owner/Admin panel.
+This repository is the source for the site linked above.
+
 ## Overview
 
 This project uses the following tech stack:
