@@ -235,6 +235,17 @@ function RouteSyncer() {
 }
 
 
+// Installable app. The service worker is what makes the browser offer "Install
+// app" in the address bar; it is never registered in dev, so a stale cache can
+// never hide local changes.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.register("/sw.js").catch(() => {
+      /* Not fatal: the app works normally without offline support. */
+    });
+  });
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
