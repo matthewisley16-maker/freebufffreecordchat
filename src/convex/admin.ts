@@ -202,8 +202,16 @@ export const listUsers = query({
     // Resolve display names with ONE profiles read instead of a lookup per user.
     const profiles = await ctx.db.query("profiles").take(4000);
     const nameById = new Map(profiles.map((p) => [p.userId as string, p.displayName]));
+    // Presence gives the last heartbeat, so members who signed in before this
+    // field existed still show a real "last login" instead of a blank column.
+    const presenceRows = await ctx.db.query("presence").take(4000);
+    const presenceById = new Map(presenceRows.map((p) => [p.userId as string, p]));
+    const now = Date.now();
     const rows = all.map((u) => {
       const name = nameById.get(u._id) || u.name || u.username || "Freebuff member";
+      const presence = presenceById.get(u._id as string);
+      const lastSeen = presence?.lastSeen ?? 0;
+      const lastLoginAt = Math.max(u.lastLoginAt ?? 0, lastSeen) || null;
       return {
         userId: u._id,
         username: u.username ?? "",
@@ -218,6 +226,8 @@ export const listUsers = query({
         suspendReason: u.suspendReason ?? null,
         isAnonymous: u.isAnonymous ?? false,
         createdAt: u._creationTime,
+        lastLoginAt,
+        online: lastSeen > 0 && now - lastSeen <= 5 * 60_000 && presence?.status !== "invisible",
         searchText: `${name} ${u.username ?? ""} ${u.email ?? ""}`.toLowerCase(),
       };
     });

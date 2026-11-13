@@ -330,6 +330,8 @@ type AdminUser = {
   suspendReason: string | null;
   isAnonymous: boolean;
   createdAt: number;
+  lastLoginAt: number | null;
+  online: boolean;
 };
 
 type PendingAction =
@@ -798,6 +800,16 @@ export default function AdminPanel() {
                         </div>
                         <div className="mt-0.5 truncate text-xs text-muted-foreground">
                           @{u.username || "—"}{u.email ? ` · ${u.email}` : ""}
+                        </div>
+                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="size-3 shrink-0" />
+                          {u.online ? (
+                            <span className="text-emerald-400">Online now</span>
+                          ) : u.lastLoginAt ? (
+                            <span>Last login {new Date(u.lastLoginAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>
+                          ) : (
+                            <span>Never logged in</span>
+                          )}
                         </div>
                         {(u.banReason || u.suspendReason) && (
                           <div className="mt-1 text-xs text-muted-foreground">Reason: {u.banReason ?? u.suspendReason}</div>

@@ -64,6 +64,14 @@ export const ensureIdentity = mutation({
     const user = await ctx.db.get(userId);
     if (!user) return null;
 
+    // Record the sign-in for the Admin Panel's "last login" column. This runs
+    // when a signed-in member opens the app, so it is a genuine login stamp and
+    // not a heartbeat — throttled so a reload does not write on every render.
+    const now = Date.now();
+    if (!user.lastLoginAt || now - user.lastLoginAt > 5 * 60_000) {
+      await ctx.db.patch(userId, { lastLoginAt: now });
+    }
+
     // Repair a name stored before truncation was surrogate-safe. `auth.ts` is
     // read-only and still cuts a new account's display name at 40 code units,
     // so an emoji exactly on that boundary could otherwise leave an invalid

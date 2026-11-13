@@ -91,6 +91,7 @@ const schema = defineSchema(
       isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
 
       role: v.optional(roleValidator), // account role. do not remove
+      lastLoginAt: v.optional(v.number()), // last time this account opened the app after signing in
 
       // --- moderation state (all server-enforced, never trusted from client) ---
       banned: v.optional(v.boolean()),
