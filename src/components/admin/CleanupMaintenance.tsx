@@ -982,6 +982,202 @@ function CleanupHistory({ rows }: { rows: HistoryRow[] | undefined }) {
 }
 
 /**
+ * Automatic cleanup: retention by message age, once a day at a chosen hour.
+ *
+ * This is a schedule for the same job engine as Message Cleanup, not a new
+ * deletion path: saving writes one settings row, and the hourly cron creates an
+ * ordinary cleanup job once a day. Progress shows in the normal job card and
+ * every run appears in Cleanup history.
+ */
+function AutoCleanup({ isOwner }: { isOwner: boolean }) {
+  const data = useQuery(api.autoCleanup.settings, {});
+  const save = useMutation(api.autoCleanup.saveSettings);
+  const [enabled, setEnabled] = useState(false);
+  // One year is the default retention, so the first time this opens the
+  // schedule already matches what most communities want.
+  const [days, setDays] = useState("365");
+  const [hour, setHour] = useState("3");
+  const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (!data || hydrated.current) return;
+    hydrated.current = true;
+    setEnabled(data.enabled);
+    setDays(String(data.retentionDays));
+    setHour(String(data.runHour));
+  }, [data]);
+
+  /** Turning the schedule ON is destructive, so it always asks first. Turning it
+   *  off (or adjusting it while it is already off) is safe and saves straight away. */
+  function onSave() {
+    const retentionDays = Number(days);
+    if (!Number.isInteger(retentionDays) || retentionDays < 1 || retentionDays > 3650) {
+      toast.error("Retention must be a whole number of days between 1 and 3650.");
+      return;
+    }
+    if (enabled) {
+      setConfirmOpen(true);
+      return;
+    }
+    void commit();
+  }
+
+  async function commit() {
+    const retentionDays = Number(days);
+    setBusy(true);
+    try {
+      await save({ enabled, retentionDays, runHour: Number(hour) });
+      hydrated.current = false;
+      toast.success(
+        enabled
+          ? `Automatic cleanup saved — messages older than ${retentionDays} day${retentionDays === 1 ? "" : "s"}, daily at ${String(Number(hour)).padStart(2, "0")}:00 UTC.`
+          : "Automatic cleanup turned off.",
+      );
+    } catch (err) {
+      toast.error(friendly(err, "Could not save automatic cleanup."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const lastJob = data?.lastJob ?? null;
+
+  return (
+    <Card className="border-destructive/40 bg-destructive/[0.04]">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ShieldAlert className="size-4 text-destructive" /> Automatic cleanup
+          <Badge variant="outline" className="border-destructive/50 text-destructive">Danger</Badge>
+        </CardTitle>
+        <CardDescription>
+          Deletes messages automatically by how old they are, on a schedule — without confirming each run. It only ever
+          deletes messages: accounts, profiles, communities, channels, roles and settings are never touched. Each run
+          uses the same engine as Message Cleanup (batched, cancellable) and is recorded in Cleanup history.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!isOwner ? (
+          <p className="text-sm text-muted-foreground">
+            Only an Owner Admin can schedule automatic cleanup, because an automatic run covers the whole site.
+          </p>
+        ) : (
+          <>
+            <label className="flex items-start gap-3 rounded-lg border border-white/10 bg-background/40 p-3">
+              <Checkbox checked={enabled} onCheckedChange={(value) => setEnabled(value === true)} className="mt-0.5" />
+              <span className="space-y-0.5">
+                <span className="block text-sm font-medium">Run automatically</span>
+                <span className="block text-xs text-muted-foreground">
+                  When on, the schedule below runs once a day without anyone opening this panel.
+                </span>
+              </span>
+            </label>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label htmlFor="auto-cleanup-days" className="text-xs font-medium text-muted-foreground">
+                  Delete messages older than (days)
+                </label>
+                <Input
+                  id="auto-cleanup-days"
+                  inputMode="numeric"
+                  value={days}
+                  onChange={(event) => setDays(event.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
+                  disabled={busy}
+                />
+                <p className="text-xs text-muted-foreground">
+                  1–3650 days. The age is measured from when each message was sent.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Run every day at (UTC)</span>
+                <Select value={hour} onValueChange={setHour} disabled={busy}>
+                  <SelectTrigger aria-label="Hour of day">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 24 }, (_, value) => (
+                      <SelectItem key={value} value={String(value)}>
+                        {String(value).padStart(2, "0")}:00
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Server time (UTC). Your local time may differ.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button onClick={() => void onSave()} disabled={busy || data === undefined}>
+                {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+                Save schedule
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {data === undefined
+                  ? "Loading…"
+                  : data.enabled
+                    ? `Next run: ${formatMoment(data.nextRunAt)}`
+                    : "Currently off"}
+              </span>
+            </div>
+
+            {lastJob ? (
+              <div className="rounded-lg border border-white/10 bg-background/40 p-3 text-xs text-muted-foreground">
+                <p className="text-foreground">Last automatic run: {formatMoment(lastJob.startedAt)}</p>
+                <p>
+                  {lastJob.status} · {formatCount(lastJob.messagesDeleted)} message
+                  {lastJob.messagesDeleted === 1 ? "" : "s"} deleted
+                  {lastJob.error ? ` · ${lastJob.error}` : ""}
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No automatic run yet.</p>
+            )}
+
+            <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Are you sure you want to do this?</DialogTitle>
+                  <DialogDescription>
+                    Starting today, Freecord will permanently delete every message older than {days || "—"} days, across
+                    the whole site, every day at {String(Number(hour)).padStart(2, "0")}:00 UTC — with no further
+                    confirmation each time.
+                  </DialogDescription>
+                </DialogHeader>
+                <ul className="list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+                  <li>
+                    <span className="text-foreground">Only messages are deleted.</span> Accounts, profiles, communities,
+                    channels, roles, friendships and settings are never removed by this.
+                  </li>
+                  <li>Attached files that belonged only to those messages are removed with them.</li>
+                  <li>Deleted messages cannot be restored. Every run is written to Cleanup history and the audit log.</li>
+                  <li>You can turn it off at any time, and a run that is in progress can be stopped.</li>
+                </ul>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setConfirmOpen(false);
+                      void commit();
+                    }}
+                  >
+                    Yes, schedule it
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
  * The tab's shell. Renders nothing that is not permitted — and the server refuses
  * these calls anyway, so this is presentation only.
  */
@@ -1050,6 +1246,12 @@ export default function CleanupMaintenance({ panelOpen }: { panelOpen: boolean }
 
       <FeatureBoundary label="Cleanup history">
         <CleanupHistory rows={history} />
+      </FeatureBoundary>
+
+      {/* Dangerous, unattended deletion — kept in the danger area, below the
+          manual tools, and confirmed with an explicit dialog. */}
+      <FeatureBoundary label="Danger zone — automatic cleanup">
+        <AutoCleanup isOwner={permissions.isOwner} />
       </FeatureBoundary>
 
       <Card className="border-white/10 bg-card/40">

@@ -462,6 +462,7 @@ export const updateSettings = mutation({
     voiceNoiseSuppression: v.optional(v.boolean()),
     voiceAutoMute: v.optional(v.boolean()),
     voiceInputVolume: v.optional(v.number()),
+    desktopNotifications: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await currentUserId(ctx);

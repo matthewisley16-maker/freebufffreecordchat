@@ -102,6 +102,14 @@ export default function SettingsPanel({ onClose, onEditProfile }: { onClose: () 
 
   const s = me?.settings;
 
+  // Browser/desktop notifications are opt-in: the account preference and the
+  // browser's own permission both have to be on before anything is shown.
+  const [desktopOn, setDesktopOn] = useState(false);
+  useEffect(() => {
+    const stored = (s as never as Record<string, boolean> | null)?.desktopNotifications === true;
+    setDesktopOn(stored && typeof Notification !== "undefined" && Notification.permission === "granted");
+  }, [s]);
+
   // Local mirror of appearance settings so the controls feel instant; each
   // change is also written to the backend for that account.
   const [theme, setTheme] = useState("dark");
@@ -165,6 +173,34 @@ export default function SettingsPanel({ onClose, onEditProfile }: { onClose: () 
   async function setPref(key: string, value: unknown) {
     try { await updateSettings({ [key]: value } as never); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Could not save."); }
+  }
+
+  async function toggleDesktop(next: boolean) {
+    if (!next) {
+      setDesktopOn(false);
+      await setPref("desktopNotifications", false);
+      return;
+    }
+    if (typeof Notification === "undefined") {
+      toast.error("This browser can't show desktop notifications.");
+      return;
+    }
+    let permission = Notification.permission;
+    if (permission === "default") permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      setDesktopOn(false);
+      toast.error("Notifications are blocked. Allow them for this site in your browser settings, then try again.");
+      return;
+    }
+    setDesktopOn(true);
+    await setPref("desktopNotifications", true);
+    try {
+      new Notification("Freecord Chat", {
+        body: "Desktop notifications are on. You'll be notified while this tab is in the background.",
+      });
+    } catch {
+      /* A browser may refuse the sample; the preference is still saved. */
+    }
   }
 
   async function handleDelete() {
@@ -525,6 +561,21 @@ export default function SettingsPanel({ onClose, onEditProfile }: { onClose: () 
                   <input type="checkbox" className="fc-switch" defaultChecked={(s as never as Record<string, boolean>)?.[row.key] !== false} onChange={(e) => setPref(row.key, e.target.checked)} />
                 </label>
               ))}
+              <label className="fc-toggle-row">
+                <span>
+                  <strong>Desktop notifications</strong>
+                  <small>
+                    System notifications for the ones above while this tab is in the background. Your browser asks for
+                    permission the first time you turn this on.
+                  </small>
+                </span>
+                <input
+                  type="checkbox"
+                  className="fc-switch"
+                  checked={desktopOn}
+                  onChange={(e) => void toggleDesktop(e.target.checked)}
+                />
+              </label>
             </section>
           )}
 

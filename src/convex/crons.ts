@@ -36,4 +36,10 @@ crons.interval("storage retention sweep", { hours: 1 }, internal.storage.runClea
 // polls. It deletes no messages, hides or attachments.
 crons.interval("delete-for-me retention expiry", { hours: 6 }, internal.deleteForMeRetention.expireRetainedEntries, {});
 
+// Automatic message cleanup (Admin Panel → Cleanup & Maintenance). Hourly rather
+// than daily because Convex has no "at 03:00" schedule: the tick is cheap (one
+// settings row, one indexed lookup) and only starts the job when the configured
+// UTC hour matches and the day's run has not happened yet.
+crons.interval("automatic message cleanup", { hours: 1 }, internal.autoCleanup.autoTick, {});
+
 export default crons;

@@ -769,6 +769,40 @@ export default function Dashboard() {
     }
   }
 
+  // Desktop notifications. The account preference is set in Settings →
+  // Notifications and the browser permission is asked for there too; here we
+  // only surface NEW arrival notifications, and only when this tab is hidden so
+  // a visible window never double-notifies. The first snapshot is seeded as
+  // "already seen" so opening the app does not replay old notifications.
+  const desktopSeen = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!notifications) return;
+    const items = notificationItems;
+    if (desktopSeen.current === null) {
+      desktopSeen.current = new Set(items.map((n) => n._id as unknown as string));
+      return;
+    }
+    const seen = desktopSeen.current;
+    const prefOn = (me?.settings as { desktopNotifications?: boolean } | null | undefined)?.desktopNotifications === true;
+    const canNotify =
+      prefOn && typeof Notification !== "undefined" && Notification.permission === "granted" && document.hidden;
+    for (const n of items) {
+      const id = n._id as unknown as string;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      if (!canNotify || n.read) continue;
+      try {
+        const note = new Notification(n.title || "Freecord Chat", { body: n.body ?? "", tag: id });
+        note.onclick = () => {
+          window.focus();
+          void openNotification(n);
+        };
+      } catch {
+        /* The in-app bell still shows it. */
+      }
+    }
+  }, [notifications, notificationItems, me, openNotification]);
+
   function toggleSidebar() {
     if (typeof window !== "undefined" && window.innerWidth <= 760) {
       setMobileNav((v) => !v);

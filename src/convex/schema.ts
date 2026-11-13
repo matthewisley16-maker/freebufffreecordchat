@@ -231,6 +231,8 @@ const schema = defineSchema(
       voiceNoiseSuppression: v.optional(v.boolean()),
       voiceAutoMute: v.optional(v.boolean()),
       voiceInputVolume: v.optional(v.number()),
+      // Opt-in browser/desktop notifications. Absent or false = the in-app bell only.
+      desktopNotifications: v.optional(v.boolean()),
     }).index("by_user", ["userId"]),
 
     // ---------- Social graph ----------
@@ -1042,6 +1044,23 @@ const schema = defineSchema(
 
     // Platform-wide settings (singleton row, key = "global"). Managed from the
     // Admin Panel and enforced server-side where they matter.
+    // ---------- Automatic message cleanup (Admin Panel → Cleanup & Maintenance) ----------
+    // One row, keyed "auto-message-cleanup". The hourly cron reads it, and the
+    // run itself is an ordinary cleanupJobs row so progress and history match a
+    // manual cleanup exactly.
+    autoCleanup: defineTable({
+      key: v.string(),
+      enabled: v.boolean(),
+      /** Delete messages older than this many days. */
+      retentionDays: v.number(),
+      /** Hour of day (0–23, UTC) the daily run starts at. */
+      runHour: v.number(),
+      lastRunAt: v.optional(v.number()),
+      lastRunJobId: v.optional(v.id("cleanupJobs")),
+      updatedAt: v.number(),
+      updatedBy: v.optional(v.id("users")),
+    }).index("by_key", ["key"]),
+
     platformSettings: defineTable({
       key: v.string(),
       announcement: v.optional(v.string()),
