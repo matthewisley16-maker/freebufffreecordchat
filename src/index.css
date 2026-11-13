@@ -1356,6 +1356,8 @@ html.fc-reduced-motion *, html.fc-reduced-motion *::before, html.fc-reduced-moti
   .fc-close-mobile { display: block; color: #8b87a0; }
   .fc-menu-btn { display: block; }
   .fc-settings-mobile { display: flex; margin-bottom: 2px; }
+  /* The same row already lives in the drawer; one Settings entry is enough. */
+  .fc-settings-inline { display: none; }
   .fc-search input { width: 64px; }
   .fc-settings-body { flex-direction: column; }
   .fc-settings-tabs { width: 100%; flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid rgba(255,255,255,.07); }

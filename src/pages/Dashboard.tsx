@@ -1234,7 +1234,7 @@ export default function Dashboard() {
                 <UserPlus size={16} /> Invite to server
               </button>
             )}
-            <button className="fc-sidebar-action" onClick={() => { setSettingsOpen(true); setMobileNav(false); }}><Settings size={17} /> Settings</button>
+            <button className="fc-sidebar-action fc-settings-inline" onClick={() => { setSettingsOpen(true); setMobileNav(false); }}><Settings size={17} /> Settings</button>
             {communityList.length > 0 && (
               <>
                 <div className="fc-sidebar-section"><span>YOUR COMMUNITIES</span></div>
@@ -1279,7 +1279,7 @@ export default function Dashboard() {
             <button className="fc-sidebar-action" onClick={() => { setSection("discover"); setMobileNav(false); }}><Compass size={17} /> Discover</button>
             <button className="fc-sidebar-action" onClick={() => { setSection("search"); setMobileNav(false); }}><Search size={17} /> Search</button>
             {/* Settings is also reachable from the expanded sidebar (in addition to the user panel). */}
-            <button className="fc-sidebar-action" onClick={() => { setSettingsOpen(true); setMobileNav(false); }}><Settings size={17} /> Settings</button>
+            <button className="fc-sidebar-action fc-settings-inline" onClick={() => { setSettingsOpen(true); setMobileNav(false); }}><Settings size={17} /> Settings</button>
 
             {communityList.length > 0 && (
               <>
