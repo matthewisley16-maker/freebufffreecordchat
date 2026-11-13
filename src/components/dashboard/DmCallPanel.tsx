@@ -6,13 +6,15 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { toast } from "sonner";
-import { Maximize, Maximize2, Mic, MicOff, Minimize2, MonitorUp, PhoneOff, Search, UserPlus, Video, VideoOff, Volume2, VolumeX, X } from "lucide-react";
+import { Maximize, Maximize2, Mic, MicOff, Minimize2, MonitorUp, PhoneOff, PictureInPicture2, Search, UserPlus, Video, VideoOff, Volume2, VolumeX, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PRESENCE_META } from "./ui";
 import { applyScreenToPeer, captureDisplay, type ScreenSenders } from "@/components/voice/screenShare";
 import { RELAY_CONFIGURED, RTC_CONFIGURATION, connectionFailureMessage } from "@/lib/ice";
 import { beginCall } from "@/lib/call-activity";
+import { useResizableWindow } from "@/hooks/use-resizable";
+import { CallPopout, useCallPopout } from "@/components/call/CallPopout";
 import {
   enterFullscreen,
   exitFullscreen,
@@ -117,6 +119,10 @@ export default function DmCallPanel({
   const [nativeFullscreen, setNativeFullscreen] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(savedPos);
   const [dragging, setDragging] = useState(false);
+  // ---- Detached window + resizable in-page window (pure UI, no call changes) ----
+  const [poppedOut, setPoppedOut] = useState(false);
+  const popout = useCallPopout("Freecord call", `dm:${conversationId}`);
+  const windowSize = useResizableWindow(`dm-call:${conversationId}`, { minWidth: 300, minHeight: 320 });
   // Flips to true once the peer connection exists, so the signaling effect
   // processes anything that arrived while we were still acquiring media.
   const [pcReady, setPcReady] = useState(false);
@@ -864,6 +870,21 @@ export default function DmCallPanel({
     else if (next === "full") onExpand?.();
   }
 
+  /** Move the call into its own browser window; the call keeps running. */
+  function openPopout() {
+    if (popout.open()) setPoppedOut(true);
+  }
+
+  function bringBack() {
+    popout.close();
+    setPoppedOut(false);
+  }
+
+  // Closing the detached window with its own X puts the call back on the page.
+  useEffect(() => {
+    if (!popout.win) setPoppedOut(false);
+  }, [popout.win]);
+
   const label = connection === "connected" ? "Connected" : connection === "connecting" ? "Connecting…" : "Connection lost";
   const title = media === "video" ? "Video Call" : "Voice Call";
   const windowStyle = view === "full" ? undefined : pos ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" } : undefined;
@@ -877,7 +898,8 @@ export default function DmCallPanel({
       <div
         ref={rootRef}
         className={`fc-callwin ${view} ${dragging ? "dragging" : ""} ${pos || view === "full" ? "" : "default-pos"}`}
-        style={windowStyle}
+        data-resizable
+        style={{ ...windowStyle, ...(view === "float" ? windowSize.style : undefined), display: poppedOut ? "none" : undefined }}
         role="region"
         aria-label={`Call with ${peerName}`}
         onPointerDown={startDrag}
@@ -907,6 +929,7 @@ export default function DmCallPanel({
                 )}
               </>
             )}
+            <button aria-label="Pop the call out into its own window" title="Pop out" onClick={(e) => { e.stopPropagation(); openPopout(); }}><PictureInPicture2 size={14} /></button>
             <button className="danger" aria-label="End call" title="End call" onClick={(e) => { e.stopPropagation(); onLeave(); }}><X size={14} /></button>
           </span>
         </div>
@@ -1019,9 +1042,104 @@ export default function DmCallPanel({
           >
             {nativeFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
           </button>
+          <button
+            aria-label="Pop the call out into its own window"
+            title="Pop out"
+            onClick={openPopout}
+          >
+            <PictureInPicture2 size={16} />
+          </button>
           <button className="danger" onClick={onLeave} aria-label="End call" title="End call"><PhoneOff size={16} /></button>
         </div>
+        {/* Drag the corner to resize; double-click resets it. */}
+        {view === "float" && (
+          <span
+            className="fc-call-grip"
+            role="presentation"
+            title="Drag to resize · double-click to reset"
+            onPointerDown={windowSize.onPointerDown}
+            onDoubleClick={windowSize.reset}
+          />
+        )}
       </div>
+
+      {/* The call lives in its own window until it is brought back. */}
+      {poppedOut && (
+        <div className="fc-detached-bar" role="status">
+          <PictureInPicture2 size={14} />
+          <span>{title} with {peerName} is in its own window</span>
+          <button onClick={bringBack}>Bring back</button>
+          <button className="ghost" onClick={onLeave}>End call</button>
+        </div>
+      )}
+
+      <CallPopout win={popout.win} title={`${title} · ${peerName}`} onClose={bringBack}>
+        <div className="fc-popout-grid">
+          <div className="fc-popout-tile">
+            {remoteHasVideo ? (
+              <video
+                autoPlay
+                playsInline
+                muted
+                ref={(el) => {
+                  if (el && remoteStream && el.srcObject !== remoteStream) el.srcObject = remoteStream;
+                }}
+              />
+            ) : (
+              <span className="fc-popout-avatar">{peerName}</span>
+            )}
+            <span className="fc-popout-name">{peerName}{remoteScreen ? " · sharing" : ""}</span>
+          </div>
+          <div className="fc-popout-tile">
+            {cameraOn || screenOn ? (
+              <video
+                autoPlay
+                playsInline
+                muted
+                ref={(el) => {
+                  if (!el) return;
+                  const stream = screenOn ? screenStreamRef.current : localStream;
+                  if (stream && el.srcObject !== stream) el.srcObject = stream;
+                }}
+              />
+            ) : (
+              <span className="fc-popout-avatar">You</span>
+            )}
+            <span className="fc-popout-name">{screenOn ? "Your screen" : cameraOn ? "You" : "Camera off"}</span>
+          </div>
+          {remoteScreen && (
+            <div className="fc-popout-tile">
+              <video
+                autoPlay
+                playsInline
+                muted
+                ref={(el) => {
+                  if (el && el.srcObject !== remoteScreen) el.srcObject = remoteScreen;
+                }}
+              />
+              <span className="fc-popout-name">{peerName}&apos;s screen</span>
+            </div>
+          )}
+        </div>
+        <div className="fc-popout-controls">
+          <button className={muted ? "active" : ""} onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"} title="Microphone">
+            {muted ? <MicOff size={17} /> : <Mic size={17} />}
+          </button>
+          <button className={speakerMuted ? "active" : ""} onClick={() => setSpeakerMuted((v) => !v)} aria-label="Mute sound" title="Sound">
+            {speakerMuted ? <VolumeX size={17} /> : <Volume2 size={17} />}
+          </button>
+          <button className={cameraOn ? "active" : ""} onClick={toggleCamera} aria-label="Camera" title="Camera">
+            {cameraOn ? <Video size={17} /> : <VideoOff size={17} />}
+          </button>
+          <button className={screenOn ? "active" : ""} onClick={() => void toggleScreen()} aria-label="Share screen" title="Share screen">
+            <MonitorUp size={17} />
+          </button>
+          <button className="danger" onClick={onLeave} aria-label="End call" title="End call">
+            <PhoneOff size={17} />
+          </button>
+        </div>
+        <p className="fc-popout-note">The call keeps running while you use other windows.</p>
+      </CallPopout>
 
       {/* Invite picker — conversation members who can join THIS same call.
           Sending an invitation is a notification only: it never rings, never

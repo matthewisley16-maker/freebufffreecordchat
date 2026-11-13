@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import ProfileAvatar from "@/components/profile/ProfileAvatar";
 import { toSafeArray } from "@/lib/collection";
 import { toast } from "sonner";
-import { Maximize, Maximize2, Mic, MicOff, Minimize2, MonitorUp, PhoneOff, Search, UserPlus, Video, VideoOff, VolumeX, X } from "lucide-react";
+import { Maximize, Maximize2, Mic, MicOff, Minimize2, MonitorUp, PhoneOff, PictureInPicture2, Search, UserPlus, Video, VideoOff, VolumeX, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PRESENCE_META } from "@/components/dashboard/ui";
 import { applyScreenToPeer, captureDisplay, type ScreenSenders } from "./screenShare";
 import { useDraggableWindow } from "@/hooks/use-draggable";
+import { useResizableWindow } from "@/hooks/use-resizable";
+import { CallPopout, useCallPopout } from "@/components/call/CallPopout";
 import { RTC_CONFIGURATION } from "@/lib/ice";
 import { beginCall } from "@/lib/call-activity";
 import { enterFullscreen, exitFullscreen, isFullscreenElement, onFullscreenChange } from "@/lib/fullscreen";
@@ -133,6 +135,10 @@ export default function VoicePanel({
   const [mediaReady, setMediaReady] = useState(false);
   // The minimized floating window is draggable; the call itself is untouched.
   const miniDrag = useDraggableWindow(`vp-mini:${channelId}`);
+  // ---- Detached window + resizable in-page panel (pure UI, no call changes) ----
+  const [poppedOut, setPoppedOut] = useState(false);
+  const popout = useCallPopout("Freecord call", `voice:${channelId}`);
+  const panelSize = useResizableWindow(`voice-call:${channelId}`, { minWidth: 300, minHeight: 260 });
 
   const localStream = useRef<MediaStream | null>(null);
   const peers = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -693,6 +699,21 @@ export default function VoicePanel({
 
   const statusLabel = connection === "connected" ? "Voice Connected" : connection === "connecting" ? "Connecting…" : "Connection Lost";
 
+  /** Move the call into its own browser window; the call keeps running. */
+  function openPopout() {
+    if (popout.open()) setPoppedOut(true);
+  }
+
+  function bringBack() {
+    popout.close();
+    setPoppedOut(false);
+  }
+
+  // Closing the detached window with its own X puts the call back on the page.
+  useEffect(() => {
+    if (!popout.win) setPoppedOut(false);
+  }, [popout.win]);
+
   const screenEntries = useMemo<ScreenEntry[]>(() => {
     const list: ScreenEntry[] = [];
     if (screenOn && screenStreamRef.current) list.push({ id: "self", local: true, stream: screenStreamRef.current, name: "You" });
@@ -785,8 +806,8 @@ export default function VoicePanel({
           </div>
         </div>
       ) : (
-        <div className="fc-call-overlay" role="dialog" aria-label={`${channelName} voice`}>
-          <div className="vp-panel" ref={panelRef}>
+        <div className="fc-call-overlay" role="dialog" aria-label={`${channelName} voice`} style={poppedOut ? { display: "none" } : undefined}>
+          <div className="vp-panel" ref={panelRef} data-resizable style={panelSize.style}>
             <header className="vp-head">
               <div>
                 <p className="vp-title">{channelName}</p>
@@ -816,6 +837,9 @@ export default function VoicePanel({
                 >
                   {panelFullscreen ? <Minimize2 className="mr-1 h-4 w-4" /> : <Maximize2 className="mr-1 h-4 w-4" />}
                   {panelFullscreen ? "Exit" : "Fullscreen"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={openPopout} title="Open this call in its own window">
+                  <PictureInPicture2 className="mr-1 h-4 w-4" /> Pop out
                 </Button>
                 <Button size="sm" variant="destructive" onClick={onLeave}><PhoneOff className="mr-1 h-4 w-4" /> Disconnect</Button>
               </div>
@@ -936,9 +960,88 @@ export default function VoicePanel({
                 <UserPlus className="h-5 w-5" />
               </button>
             </footer>
+            {/* Drag the corner to resize the panel; double-click resets it. */}
+            <span
+              className="fc-call-grip"
+              role="presentation"
+              title="Drag to resize · double-click to reset"
+              onPointerDown={panelSize.onPointerDown}
+              onDoubleClick={panelSize.reset}
+            />
           </div>
         </div>
       )}
+
+      {/* The call lives in its own window until it is brought back. */}
+      {poppedOut && (
+        <div className="fc-detached-bar" role="status">
+          <PictureInPicture2 size={14} />
+          <span>{channelName} is in its own window</span>
+          <button onClick={bringBack}>Bring back</button>
+          <button className="ghost" onClick={onLeave}>Leave</button>
+        </div>
+      )}
+
+      <CallPopout win={popout.win} title={`${channelName} · ${statusLabel}`} onClose={bringBack}>
+        <div className="fc-popout-grid">
+          {participants.map((p) => {
+            const isSelf = p.userId === myUserId;
+            const showVideo = isSelf ? videoOn : p.video;
+            return (
+              <div key={p.userId} className={`fc-popout-tile ${p.speaking ? "speaking" : ""}`}>
+                {showVideo ? (
+                  <video
+                    autoPlay
+                    playsInline
+                    muted
+                    ref={(el) => {
+                      if (!el) return;
+                      const stream = isSelf ? localStream.current : remoteStreams[p.userId];
+                      if (stream && el.srcObject !== stream) el.srcObject = stream;
+                    }}
+                  />
+                ) : (
+                  <span className="fc-popout-avatar">{p.name}</span>
+                )}
+                <span className="fc-popout-name">
+                  {p.name}{isSelf ? " (you)" : ""}{p.muted ? " · muted" : ""}{!isSelf && remoteScreens[p.userId] ? " · sharing" : ""}
+                </span>
+              </div>
+            );
+          })}
+          {screenEntries.map((entry) => (
+            <div className="fc-popout-tile" key={`screen-${entry.id}`}>
+              <video
+                autoPlay
+                playsInline
+                muted
+                ref={(el) => {
+                  if (el && el.srcObject !== entry.stream) el.srcObject = entry.stream;
+                }}
+              />
+              <span className="fc-popout-name">{entry.local ? "Your screen" : `${entry.name}'s screen`}</span>
+            </div>
+          ))}
+        </div>
+        <div className="fc-popout-controls">
+          <button className={muted ? "active" : ""} onClick={toggleMute} aria-label={muted ? "Unmute" : "Mute"} title="Microphone">
+            {muted ? <MicOff size={17} /> : <Mic size={17} />}
+          </button>
+          <button className={deafened ? "active" : ""} onClick={toggleDeafen} aria-label="Deafen" title="Sound">
+            <VolumeX size={17} />
+          </button>
+          <button className={videoOn ? "active" : ""} onClick={toggleVideo} aria-label="Camera" title="Camera">
+            {videoOn ? <Video size={17} /> : <VideoOff size={17} />}
+          </button>
+          <button className={screenOn ? "active" : ""} onClick={() => void toggleScreen()} aria-label="Share screen" title="Share screen">
+            <MonitorUp size={17} />
+          </button>
+          <button className="danger" onClick={onLeave} aria-label="Leave call" title="Leave call">
+            <PhoneOff size={17} />
+          </button>
+        </div>
+        <p className="fc-popout-note">The call keeps running while you use other windows.</p>
+      </CallPopout>
 
       {/* Invite picker — community members who can join THIS call. */}
       {inviteOpen && (
