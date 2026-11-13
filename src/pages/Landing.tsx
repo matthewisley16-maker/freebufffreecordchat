@@ -44,12 +44,121 @@ function LandingNotice() {
   );
 }
 
+const LANDING_FEATURES = [
+  { icon: Users, title: "Communities", text: "Create or join communities with text, voice and video channels, roles and moderation tools." },
+  { icon: MessageCircle, title: "Direct messages", text: "Private one-to-one and group chats with replies, reactions, edits, pins and file sharing." },
+  { icon: Volume2, title: "Voice chat", text: "Persistent voice rooms with mute, deafen and speaking indicators. No ringing required." },
+  { icon: AudioLines, title: "Video chat", text: "Turn on your camera, switch layouts and share your screen over peer-to-peer WebRTC." },
+  { icon: Heart, title: "Friends", text: "Send requests, accept or decline, and keep a friends list that respects your privacy." },
+  { icon: Compass, title: "Discover", text: "Browse public communities by category, see member counts and join in one click." },
+];
+
 export default function Landing() {
   const [menu, setMenu] = useState(false);
-  return <div className="freecord-landing"><LandingNotice /><nav className="landing-nav"><Link to="/" aria-label="Freecord home"><FreecordMark /></Link><div className={`nav-links ${menu ? "mobile-open" : ""}`}><a href="#experience">The experience</a><a href="#why-freecord">Why Freecord</a><a href="#community">For communities <ArrowUpRight size={12} /></a></div><div className="nav-actions"><Link to="/auth" className="login-link">Log in</Link><Link to="/auth?returnTo=/dashboard" className="button-dark nav-cta">Open Freecord <ArrowUpRight size={15} /></Link><button className="mobile-menu" aria-label="Toggle navigation" onClick={() => setMenu(!menu)}>{menu ? <X /> : <Menu />}</button></div></nav>
-    <main><motion.section className="landing-hero" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .65 }}><div className="hero-copy"><div className="eyebrow"><span className="status-dot" />A PLACE TO BELONG</div><h1>Your people.<br />Your place<span className="accent-period">.</span></h1><p>A place to talk, connect, and build communities.<br className="desktop-break" /> Text, voice, video, and the people who matter.</p><div className="hero-actions"><Link className="button-dark" to="/auth">Create Account <ArrowUpRight size={18} /></Link><Link className="button-teal" to="/auth">Log In</Link><Link className="hero-secondary" to="/auth?returnTo=/dashboard">Explore Communities <ArrowRight size={16} /></Link></div><div className="hero-footnote"><span className="tiny-avatars"><span className="peach">J</span><span className="lavender">A</span><span className="sage">S</span></span><span>Good conversations. Great company. <Heart size={12} /></span></div></div><div className="hero-aside"><div className="orbit-word">a little closer, wherever you are</div><div className="hero-flower">✳</div><div className="floating-note note-one"><span className="status-dot" />Your kind of corner of the internet.</div><div className="floating-note note-two"><MessageCircle size={16} />Less scrolling. More connecting.</div><span className="hero-spark">✧</span></div></motion.section>
-    <section id="experience" className="experience-section"><div className="preview-caption"><span><span className="status-dot" />THIS IS WHAT BELONGING LOOKS LIKE</span><span>Built for conversations, not algorithms <ArrowDownIcon /></span></div><ChatPreview /><div className="under-preview"><span><Check size={14} />Free to get started</span><span><Check size={14} />No noisy feeds</span><span><Check size={14} />Just your people</span></div></section>
-    <section id="why-freecord" className="features-section"><div className="section-heading"><div><span className="eyebrow">EVERYTHING YOU NEED TO CONNECT</span><h2>A space that feels like you.</h2></div><p>Communities, direct messages, voice, video, friends, and following.<br />Freecord is built for real conversation.</p></div><div className="feature-grid">{[{ icon: Users, n: "01", title: "Communities", text: "Create or join communities with text, voice, and video channels, roles, and moderation tools." }, { icon: MessageCircle, n: "02", title: "Direct messages", text: "Private one-to-one and group conversations with replies, reactions, edits, pins, and file sharing." }, { icon: Volume2, n: "03", title: "Voice chat", text: "Hop into persistent voice rooms with mute, deafen, and speaking indicators. No ringing required." }, { icon: AudioLines, n: "04", title: "Video chat", text: "Turn on your camera, switch layouts, and share your screen over peer-to-peer WebRTC." }, { icon: Heart, n: "05", title: "Friends", text: "Send requests, accept or decline, and keep a friends list that actually respects your privacy." }, { icon: Compass, n: "06", title: "Discover", text: "Browse public communities by category, see member counts, and join in one click." }].map(f => <article className="feature-card" key={f.n}><div className="feature-top"><f.icon size={23} /><span>{f.n}</span></div><h3>{f.title}</h3><p>{f.text}</p></article>)}</div></section>
-    <section id="community" className="community-cta"><div className="cta-flower">✳</div><div><span className="eyebrow">THE BEST PART IS WHO’S HERE</span><h2>Make room for your people.</h2><p>Your next great conversation starts with a hello.</p></div><Link className="button-dark" to="/auth?returnTo=/dashboard">Create your space <ArrowUpRight size={17} /></Link></section></main><footer className="landing-footer"><Link to="/"><FreecordMark small /></Link><span>A little closer. A little more connected.</span><span>© {new Date().getFullYear()} Freecord · Independent, original community platform</span></footer></div>;
+
+  return (
+    <div className="freecord-landing">
+      <LandingNotice />
+
+      <header className="landing-nav">
+        <Link to="/" aria-label="Freecord home" className="landing-logo"><FreecordMark /></Link>
+
+        <nav className={`nav-links ${menu ? "mobile-open" : ""}`} aria-label="Main">
+          <a href="#experience" onClick={() => setMenu(false)}>Preview</a>
+          <a href="#why-freecord" onClick={() => setMenu(false)}>Features</a>
+          <Link to="/about" onClick={() => setMenu(false)}>About</Link>
+          <div className="nav-mobile-actions">
+            <Link to="/auth" onClick={() => setMenu(false)}>Log in</Link>
+            <Link className="button-primary" to="/auth?returnTo=/dashboard" onClick={() => setMenu(false)}>Open Freecord</Link>
+          </div>
+        </nav>
+
+        <div className="nav-actions">
+          <Link to="/auth" className="login-link">Log in</Link>
+          <Link to="/auth?returnTo=/dashboard" className="button-primary nav-cta">Open Freecord <ArrowUpRight size={15} /></Link>
+          <button
+            className="mobile-menu"
+            aria-label="Toggle navigation"
+            aria-expanded={menu}
+            onClick={() => setMenu((open) => !open)}
+          >
+            {menu ? <X /> : <Menu />}
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section className="landing-hero">
+          <motion.div
+            className="hero-copy"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55 }}
+          >
+            <span className="hero-pill"><span className="status-dot" />A place to belong</span>
+            <h1>Your people.<br />Your place<span className="accent-period">.</span></h1>
+            <p>A calm home for your communities — text, voice, video and the people who matter, without the noise.</p>
+            <div className="hero-actions">
+              <Link className="button-primary" to="/auth">Create your account <ArrowUpRight size={17} /></Link>
+              <Link className="button-ghost" to="/auth">Log in</Link>
+            </div>
+            <div className="hero-footnote">
+              <span className="tiny-avatars"><span className="peach">J</span><span className="lavender">A</span><span className="sage">S</span></span>
+              <span>Free to start · No ads · No algorithm</span>
+            </div>
+          </motion.div>
+        </section>
+
+        <section id="experience" className="experience-section">
+          <div className="preview-caption">
+            <span><span className="status-dot" />Interactive preview</span>
+            <span>Click a channel or send a message — it is a demo, nothing is saved</span>
+          </div>
+          <ChatPreview />
+          <div className="under-preview">
+            <span><Check size={14} />Free to get started</span>
+            <span><Check size={14} />No noisy feeds</span>
+            <span><Check size={14} />Just your people</span>
+          </div>
+        </section>
+
+        <section id="why-freecord" className="features-section">
+          <div className="section-heading">
+            <span className="eyebrow">Everything you need</span>
+            <h2>A space that feels like you<span className="accent-period">.</span></h2>
+            <p>Communities, direct messages, voice, video, friends and discovery — built for real conversation.</p>
+          </div>
+          <div className="feature-grid">
+            {LANDING_FEATURES.map((feature) => (
+              <article className="feature-card" key={feature.title}>
+                <span className="feature-icon"><feature.icon size={20} /></span>
+                <h3>{feature.title}</h3>
+                <p>{feature.text}</p>
+              </article>
+            ))}
+          </div>
+          <p className="features-more">
+            <Link to="/about">More about how Freecord works <ArrowRight size={14} /></Link>
+          </p>
+        </section>
+
+        <section id="community" className="community-cta">
+          <span className="eyebrow">The best part is who&apos;s here</span>
+          <h2>Make room for your people<span className="accent-period">.</span></h2>
+          <p>Your next great conversation starts with a hello.</p>
+          <Link className="button-primary" to="/auth?returnTo=/dashboard">Create your space <ArrowUpRight size={17} /></Link>
+        </section>
+      </main>
+
+      <footer className="landing-footer">
+        <Link to="/" aria-label="Freecord home"><FreecordMark small /></Link>
+        <nav className="footer-links">
+          <Link to="/about">About</Link>
+          <a href="#experience">Preview</a>
+          <a href="#why-freecord">Features</a>
+        </nav>
+        <span>© {new Date().getFullYear()} Freecord</span>
+      </footer>
+    </div>
+  );
 }
-function ArrowDownIcon() { return <span className="caption-arrow">↙</span>; }
