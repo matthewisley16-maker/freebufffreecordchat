@@ -161,6 +161,10 @@ export default function DmView({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   // Delete-for-everyone always asks first, and names the message and conversation.
   const [confirmDelete, setConfirmDelete] = useState<{ messageId: Id<"dmMessages">; author: string; body: string } | null>(null);
+  // Hiding a message for yourself used to happen on a single click; it now asks
+  // first, exactly like deleting for everyone.
+  const [confirmHide, setConfirmHide] = useState<{ messageId: Id<"dmMessages">; author: string; body: string } | null>(null);
+  const [hidingMessage, setHidingMessage] = useState(false);
   const [deletingMessage, setDeletingMessage] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
@@ -418,6 +422,28 @@ export default function DmView({
 
   return (
     <>
+    {confirmHide && (
+      <div className="fc-confirm-backdrop" role="dialog" aria-modal="true" aria-label="Confirm delete for me">
+        <div className="fc-confirm">
+          <h3>Delete for you only?</h3>
+          <p className="fc-confirm-quote">
+            “{confirmHide.body.trim() ? plainSummary(confirmHide.body, 140) : "(attachment only)"}” — sent by <strong>{confirmHide.author}</strong> in <strong>{title}</strong>
+          </p>
+          <p>This hides the message from your view only. Everyone else keeps seeing it, and you cannot bring it back.</p>
+          <div className="fc-confirm-actions">
+            <Button variant="outline" onClick={() => setConfirmHide(null)}>Cancel</Button>
+            <Button variant="destructive" disabled={hidingMessage} onClick={async () => {
+              setHidingMessage(true);
+              try {
+                await deleteDmForMe({ messageId: confirmHide.messageId });
+                toast.success("Message hidden for you only.");
+              } catch (e) { toast.error(e instanceof Error ? e.message : "Failed."); }
+              finally { setHidingMessage(false); setConfirmHide(null); }
+            }}>{hidingMessage ? "Deleting…" : "Delete for me"}</Button>
+          </div>
+        </div>
+      </div>
+    )}
     {confirmDelete && (
       <div className="fc-confirm-backdrop" role="dialog" aria-modal="true" aria-label="Confirm delete">
         <div className="fc-confirm">
@@ -695,7 +721,7 @@ export default function DmView({
                   <div className="fc-menu">
                     {mine && <button onClick={() => { setEditing({ id: m._id, body: m.body }); setDraft(m.body); setReplyTo(null); setOpenMenu(null); }}><Pencil size={13} /> Edit</button>}
                     {/* Delete for me only hides the message for this user. */}
-                    <button onClick={async () => { try { await deleteDmForMe({ messageId: m._id }); toast.success("Message hidden for you only."); } catch (e) { toast.error(e instanceof Error ? e.message : "Failed."); } setOpenMenu(null); }}><Trash2 size={13} /> Delete for me</button>
+                    <button onClick={() => { setConfirmHide({ messageId: m._id, author: m.author, body: m.body }); setOpenMenu(null); }}><Trash2 size={13} /> Delete for me</button>
                     {/* The author, or a platform administrator moderating anyone's message. */}
                     {(mine || isPlatformAdmin) && (
                       <button className="danger" onClick={() => { setConfirmDelete({ messageId: m._id, author: m.author, body: m.body }); setOpenMenu(null); }}>

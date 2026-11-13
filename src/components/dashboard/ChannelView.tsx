@@ -109,6 +109,10 @@ export default function ChannelView({
   // Identifies the message (and its author/text) in the confirmation dialog so an
   // administrator moderating someone else's message knows exactly what they picked.
   const [confirmDelete, setConfirmDelete] = useState<{ messageId: Id<"messages">; author: string; body: string } | null>(null);
+  // "Delete for me" only hides the message from this account, but it is still
+  // destructive from the member's point of view, so it asks before acting.
+  const [confirmHide, setConfirmHide] = useState<{ messageId: Id<"messages">; author: string; body: string } | null>(null);
+  const [hidingMessage, setHidingMessage] = useState(false);
   const [longPressFor, setLongPressFor] = useState<string | null>(null);
   const pressTimer = useRef<number | null>(null);
 
@@ -315,6 +319,28 @@ export default function ChannelView({
 
   return (
     <>
+    {confirmHide && (
+      <div className="fc-confirm-backdrop" role="dialog" aria-modal="true" aria-label="Confirm delete for me">
+        <div className="fc-confirm">
+          <h3>Delete for you only?</h3>
+          <p className="fc-confirm-quote">
+            “{confirmHide.body.trim() ? plainSummary(confirmHide.body, 140) : "(attachment only)"}” — sent by <strong>{confirmHide.author}</strong> in <strong>#{channelName}</strong>
+          </p>
+          <p>This hides the message from your view only. Everyone else keeps seeing it, and you cannot bring it back.</p>
+          <div className="fc-confirm-actions">
+            <Button variant="outline" onClick={() => setConfirmHide(null)}>Cancel</Button>
+            <Button variant="destructive" disabled={hidingMessage} onClick={async () => {
+              setHidingMessage(true);
+              try {
+                await deleteForMe({ messageId: confirmHide.messageId });
+                toast.success("Message hidden for you only.");
+              } catch (e) { toast.error(e instanceof Error ? e.message : "Failed."); }
+              finally { setHidingMessage(false); setConfirmHide(null); }
+            }}>{hidingMessage ? "Deleting…" : "Delete for me"}</Button>
+          </div>
+        </div>
+      </div>
+    )}
     {confirmDelete && (
       <div className="fc-confirm-backdrop" role="dialog" aria-modal="true" aria-label="Confirm delete">
         <div className="fc-confirm">
@@ -464,7 +490,7 @@ export default function ChannelView({
                     <button onClick={() => { pin({ messageId: m._id, pinned: !m.pinned }).catch(() => {}); setMenuFor(null); }}><Pin size={13} /> {m.pinned ? "Unpin" : "Pin"}</button>
                     <button onClick={async () => { try { await navigator.clipboard.writeText(m.body); toast.success("Copied."); } catch { toast.error("Couldn't copy."); } setMenuFor(null); }}><Copy size={13} /> Copy text</button>
                     {/* Delete for me is always available and only affects this user. */}
-                    <button onClick={async () => { try { await deleteForMe({ messageId: m._id }); toast.success("Message hidden for you only."); } catch (e) { toast.error(e instanceof Error ? e.message : "Failed."); } setMenuFor(null); }}>
+                    <button onClick={() => { setConfirmHide({ messageId: m._id, author: m.author, body: m.body }); setMenuFor(null); }}>
                       <Trash2 size={13} /> Delete for me
                     </button>
                     {/* Delete for everyone only appears when permitted. */}
