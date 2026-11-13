@@ -1390,6 +1390,15 @@ export default function Dashboard() {
           </>
         )}
 
+        {/* Mobile only: Settings lives inside the drawer, so it is always one tap
+            away on a phone. Hidden on desktop, where the user panel's gear is used. */}
+        <button
+          className="fc-sidebar-action fc-settings-mobile"
+          onClick={() => { setSettingsOpen(true); setMobileNav(false); }}
+        >
+          <Settings size={17} /> Settings
+        </button>
+
         {/* User panel */}
         <div className="fc-user-panel">
           <Avatar name={me?.profile?.displayName ?? me?.username ?? "You"} presence={me?.presence} size={34} url={me?.avatarUrl} lastSeen={me?.lastSeen} decorationId={me?.profile?.decorationId ?? null} />
