@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { applyTheme } from "@/lib/themes";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -548,16 +549,12 @@ export default function Dashboard() {
 
   // Theme + reduced motion live on <html> so they apply to the whole app.
   useEffect(() => {
-    const root = document.documentElement;
     const chosen = appearance?.theme ?? "dark";
     const resolved = chosen === "system"
       ? (window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark")
       : chosen;
-    root.dataset.theme = resolved;
-    root.classList.toggle("fc-light", resolved === "light");
-    root.classList.toggle("fc-contrast", resolved === "contrast");
-    root.classList.toggle("fc-midnight", resolved === "midnight");
-    root.classList.toggle("fc-reduced-motion", appearance?.reducedMotion === true);
+    applyTheme(resolved);
+    document.documentElement.classList.toggle("fc-reduced-motion", appearance?.reducedMotion === true);
   }, [appearance?.theme, appearance?.reducedMotion]);
   useEffect(() => {
     if (voiceSession) setInCall({ channelId: voiceSession.channelId, name: voiceSession.channelName });

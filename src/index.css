@@ -2122,3 +2122,316 @@ html.fc-light .fc-lock-title { color: #1c1b22; }
 .fc-status-mascot-badge { position: absolute; right: 2px; bottom: 10px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #1a1826; border: 1px solid rgba(255,255,255,.16); color: #c4b5fd; }
 .fc-status-mascot-badge svg { width: 15px; height: 15px; }
 @media (prefers-reduced-motion: reduce) { .fc-status-mascot > svg { animation: none; } }
+
+/* ---------- Curated themes (data-theme on <html>) ---------- */
+html[data-theme] {
+  --fc-bg: #0b0b10;
+  --fc-rail: #0d0d12;
+  --fc-side: #121218;
+  --fc-panel: #17171f;
+  --fc-elev: #1e1d28;
+  --fc-border: rgba(255, 255, 255, .08);
+  --fc-text: #eeecf6;
+  --fc-dim: #9d99ad;
+  --fc-accent: #8b5cf6;
+  --fc-accent-2: #6d3ff5;
+  --fc-glow: rgba(139, 92, 246, .16);
+}
+html[data-theme="midnight"] {
+  --fc-bg: #070b16;
+  --fc-rail: #090f1e;
+  --fc-side: #0c1424;
+  --fc-panel: #101a2e;
+  --fc-elev: #16233a;
+  --fc-border: rgba(148, 190, 255, .12);
+  --fc-text: #eaf1ff;
+  --fc-dim: #93a4c4;
+  --fc-accent: #4f8dff;
+  --fc-accent-2: #2563eb;
+  --fc-glow: rgba(79, 141, 255, .18);
+  --background: #070b16;
+  --foreground: #eaf1ff;
+  --card: #0f192c;
+  --card-foreground: #eaf1ff;
+  --popover: #0f192c;
+  --popover-foreground: #eaf1ff;
+  --primary: #4f8dff;
+  --primary-foreground: #ffffff;
+  --secondary: #142138;
+  --secondary-foreground: #dbe7ff;
+  --muted: #111c30;
+  --muted-foreground: #93a4c4;
+  --accent: #16233a;
+  --accent-foreground: #dbe7ff;
+  --border: rgba(148, 190, 255, .12);
+  --input: rgba(148, 190, 255, .16);
+  --ring: #4f8dff;
+  --sidebar: #090f1e;
+  --sidebar-foreground: #dbe7ff;
+  --sidebar-primary: #4f8dff;
+  --sidebar-accent: #132138;
+  --sidebar-accent-foreground: #dbe7ff;
+  --sidebar-border: rgba(148, 190, 255, .1);
+  --sidebar-ring: #4f8dff;
+}
+html[data-theme="sakura"] {
+  --fc-bg: #120912;
+  --fc-rail: #170b17;
+  --fc-side: #1b0e1b;
+  --fc-panel: #221224;
+  --fc-elev: #2c172d;
+  --fc-border: rgba(255, 190, 225, .12);
+  --fc-text: #fdeff8;
+  --fc-dim: #c7a3bd;
+  --fc-accent: #f472b6;
+  --fc-accent-2: #db2777;
+  --fc-glow: rgba(244, 114, 182, .18);
+  --background: #120912;
+  --foreground: #fdeff8;
+  --card: #201021;
+  --card-foreground: #fdeff8;
+  --popover: #201021;
+  --popover-foreground: #fdeff8;
+  --primary: #f472b6;
+  --primary-foreground: #ffffff;
+  --secondary: #2a1529;
+  --secondary-foreground: #ffe4f2;
+  --muted: #241223;
+  --muted-foreground: #c7a3bd;
+  --accent: #2c172d;
+  --accent-foreground: #ffe4f2;
+  --border: rgba(255, 190, 225, .12);
+  --input: rgba(255, 190, 225, .16);
+  --ring: #f472b6;
+  --sidebar: #170b17;
+  --sidebar-foreground: #ffe4f2;
+  --sidebar-primary: #f472b6;
+  --sidebar-accent: #251326;
+  --sidebar-accent-foreground: #ffe4f2;
+  --sidebar-border: rgba(255, 190, 225, .1);
+  --sidebar-ring: #f472b6;
+}
+html[data-theme="forest"] {
+  --fc-bg: #06110d;
+  --fc-rail: #081611;
+  --fc-side: #0a1a14;
+  --fc-panel: #0e211a;
+  --fc-elev: #142c22;
+  --fc-border: rgba(160, 255, 214, .11);
+  --fc-text: #ecfaf3;
+  --fc-dim: #93b6a7;
+  --fc-accent: #34d399;
+  --fc-accent-2: #059669;
+  --fc-glow: rgba(52, 211, 153, .16);
+  --background: #06110d;
+  --foreground: #ecfaf3;
+  --card: #0d1f18;
+  --card-foreground: #ecfaf3;
+  --popover: #0d1f18;
+  --popover-foreground: #ecfaf3;
+  --primary: #34d399;
+  --primary-foreground: #04140d;
+  --secondary: #10281f;
+  --secondary-foreground: #d8f7e9;
+  --muted: #0c241b;
+  --muted-foreground: #93b6a7;
+  --accent: #142c22;
+  --accent-foreground: #d8f7e9;
+  --border: rgba(160, 255, 214, .11);
+  --input: rgba(160, 255, 214, .16);
+  --ring: #34d399;
+  --sidebar: #081611;
+  --sidebar-foreground: #d8f7e9;
+  --sidebar-primary: #34d399;
+  --sidebar-accent: #10281f;
+  --sidebar-accent-foreground: #d8f7e9;
+  --sidebar-border: rgba(160, 255, 214, .09);
+  --sidebar-ring: #34d399;
+}
+html[data-theme="sunset"] {
+  --fc-bg: #120c0a;
+  --fc-rail: #170f0c;
+  --fc-side: #1c1210;
+  --fc-panel: #231714;
+  --fc-elev: #2e1d18;
+  --fc-border: rgba(255, 205, 170, .12);
+  --fc-text: #fdf1e9;
+  --fc-dim: #c8a99a;
+  --fc-accent: #fb923c;
+  --fc-accent-2: #ea580c;
+  --fc-glow: rgba(251, 146, 60, .17);
+  --background: #120c0a;
+  --foreground: #fdf1e9;
+  --card: #211512;
+  --card-foreground: #fdf1e9;
+  --popover: #211512;
+  --popover-foreground: #fdf1e9;
+  --primary: #fb923c;
+  --primary-foreground: #2a1204;
+  --secondary: #2b1b16;
+  --secondary-foreground: #ffe8d8;
+  --muted: #251712;
+  --muted-foreground: #c8a99a;
+  --accent: #2e1d18;
+  --accent-foreground: #ffe8d8;
+  --border: rgba(255, 205, 170, .12);
+  --input: rgba(255, 205, 170, .17);
+  --ring: #fb923c;
+  --sidebar: #170f0c;
+  --sidebar-foreground: #ffe8d8;
+  --sidebar-primary: #fb923c;
+  --sidebar-accent: #271913;
+  --sidebar-accent-foreground: #ffe8d8;
+  --sidebar-border: rgba(255, 205, 170, .1);
+  --sidebar-ring: #fb923c;
+}
+html[data-theme="mono"] {
+  --fc-bg: #08080a;
+  --fc-rail: #0b0b0e;
+  --fc-side: #101014;
+  --fc-panel: #15151b;
+  --fc-elev: #1d1d25;
+  --fc-border: rgba(255, 255, 255, .1);
+  --fc-text: #f4f4f5;
+  --fc-dim: #a1a1aa;
+  --fc-accent: #a1a1aa;
+  --fc-accent-2: #71717a;
+  --fc-glow: rgba(228, 228, 231, .1);
+  --primary: #a1a1aa;
+  --primary-foreground: #09090b;
+  --ring: #a1a1aa;
+}
+html[data-theme="light"] {
+  --fc-bg: #f4f4f8;
+  --fc-rail: #e9e8f2;
+  --fc-side: #eeeef6;
+  --fc-panel: #f7f7fb;
+  --fc-elev: #e6e5ef;
+  --fc-border: rgba(20, 20, 40, .1);
+  --fc-text: #1c1b22;
+  --fc-dim: #6b6880;
+  --fc-accent: #7c5cf6;
+  --fc-accent-2: #6d3ff5;
+  --fc-glow: rgba(124, 92, 246, .1);
+  --background: #f4f4f8;
+  --foreground: #1c1b22;
+  --card: #ffffff;
+  --card-foreground: #1c1b22;
+  --popover: #ffffff;
+  --popover-foreground: #1c1b22;
+  --primary: #7c5cf6;
+  --primary-foreground: #ffffff;
+  --secondary: #ecebf4;
+  --secondary-foreground: #2a2836;
+  --muted: #ecebf4;
+  --muted-foreground: #6b6880;
+  --accent: #e6e3f6;
+  --accent-foreground: #2a2836;
+  --border: rgba(20, 20, 40, .1);
+  --input: rgba(20, 20, 40, .14);
+  --ring: #7c5cf6;
+  --sidebar: #eeeef6;
+  --sidebar-foreground: #2a2836;
+  --sidebar-primary: #7c5cf6;
+  --sidebar-accent: #e6e3f6;
+  --sidebar-accent-foreground: #2a2836;
+  --sidebar-border: rgba(20, 20, 40, .08);
+  --sidebar-ring: #7c5cf6;
+}
+
+/* The dashboard paints itself with literal colours; map those surfaces to the
+   active palette. Landing/auth pages keep their own artwork. */
+html[data-theme]:not(.fc-light) .fc-shell {
+  background:
+    radial-gradient(1100px 520px at 14% -12%, var(--fc-glow), transparent 68%),
+    var(--fc-bg);
+  color: var(--fc-text);
+}
+html[data-theme]:not(.fc-light) .fc-rail { background: var(--fc-rail); }
+html[data-theme]:not(.fc-light) .fc-sidebar { background: var(--fc-side); }
+html[data-theme]:not(.fc-light) .fc-main,
+html[data-theme]:not(.fc-light) .fc-messages { background: var(--fc-panel); }
+html[data-theme]:not(.fc-light) .fc-conversation {
+  background: radial-gradient(760px 340px at 30% -10%, var(--fc-glow), transparent 72%), var(--fc-panel);
+}
+html[data-theme]:not(.fc-light) .fc-members { background: var(--fc-side); border-left-color: var(--fc-border); }
+html[data-theme]:not(.fc-light) .fc-conversation-head { border-bottom-color: var(--fc-border); }
+html[data-theme]:not(.fc-light) .fc-channel,
+html[data-theme]:not(.fc-light) .fc-sidebar-action { color: var(--fc-dim); }
+html[data-theme]:not(.fc-light) .fc-channel:hover,
+html[data-theme]:not(.fc-light) .fc-sidebar-action:hover { background: rgba(255, 255, 255, .05); color: var(--fc-text); }
+html[data-theme]:not(.fc-light) .fc-channel.active,
+html[data-theme]:not(.fc-light) .fc-sidebar-action.active {
+  background: color-mix(in srgb, var(--fc-accent) 20%, transparent);
+  color: var(--fc-text);
+}
+html[data-theme]:not(.fc-light) .fc-channel.active svg { color: var(--fc-accent); }
+html[data-theme]:not(.fc-light) .fc-composer { background: var(--fc-elev); }
+html[data-theme]:not(.fc-light) .fc-user-panel { background: var(--fc-rail); }
+html[data-theme]:not(.fc-light) .fc-settings { background: color-mix(in srgb, var(--fc-bg) 97%, transparent); }
+html[data-theme]:not(.fc-light) .fc-callwin,
+html[data-theme]:not(.fc-light) .vp-panel,
+html[data-theme]:not(.fc-light) .fc-notif-panel,
+html[data-theme]:not(.fc-light) .fc-floating-menu {
+  background: var(--fc-elev);
+  border-color: var(--fc-border);
+}
+html[data-theme]:not(.fc-light) .fc-shell .button-primary,
+html[data-theme]:not(.fc-light) .fc-shell .button-dark,
+html[data-theme]:not(.fc-light) .fc-shell .button-dark:hover {
+  background: linear-gradient(135deg, var(--fc-accent), var(--fc-accent-2));
+}
+html[data-theme]:not(.fc-light) .fc-shell .fc-channel.active,
+html[data-theme]:not(.fc-light) .fc-shell .fc-settings-section h3 svg { color: var(--fc-accent); }
+html[data-theme="light"] .fc-shell { background: var(--fc-bg); color: var(--fc-text); }
+html[data-theme="light"] .fc-rail { background: var(--fc-rail); }
+html[data-theme="light"] .fc-sidebar { background: var(--fc-side); }
+html[data-theme="light"] .fc-main,
+html[data-theme="light"] .fc-messages,
+html[data-theme="light"] .fc-conversation { background: var(--fc-panel); }
+html[data-theme="light"] .fc-members { background: var(--fc-side); border-left-color: var(--fc-border); }
+
+/* ---------- Theme picker in Settings ---------- */
+.fc-theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(164px, 1fr)); gap: 10px; margin: 10px 0 18px; }
+.fc-theme-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px;
+  border-radius: 13px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .03);
+  text-align: left;
+  transition: transform .18s, border-color .18s, box-shadow .18s;
+}
+.fc-theme-card:hover { transform: translateY(-1px); border-color: rgba(255, 255, 255, .22); }
+.fc-theme-card.active {
+  border-color: var(--fc-accent, #8b5cf6);
+  box-shadow: 0 0 0 1px var(--fc-accent, #8b5cf6), 0 14px 30px -20px rgba(0, 0, 0, .9);
+}
+.fc-theme-preview { display: flex; height: 64px; border-radius: 9px; overflow: hidden; border: 1px solid rgba(255, 255, 255, .08); }
+.fc-theme-preview-rail { width: 12px; flex-shrink: 0; }
+.fc-theme-preview-side { width: 34px; flex-shrink: 0; }
+.fc-theme-preview-main { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; padding: 8px; }
+.fc-theme-preview-main i { display: block; height: 5px; width: 72%; border-radius: 999px; }
+.fc-theme-preview-main i:last-child { width: 46%; }
+.fc-theme-meta { display: flex; flex-direction: column; gap: 1px; }
+.fc-theme-meta strong { font-size: 12.5px; font-weight: 650; color: #f0eef8; }
+.fc-theme-meta small { font-size: 10.5px; color: #8b87a0; }
+.fc-theme-check {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--fc-accent, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .45);
+}
+html.fc-light .fc-theme-card { border-color: rgba(20, 20, 40, .12); background: rgba(255, 255, 255, .6); }
+html.fc-light .fc-theme-meta strong { color: #1c1b22; }
+html.fc-light .fc-theme-meta small { color: #6b6880; }

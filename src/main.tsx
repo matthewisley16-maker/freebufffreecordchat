@@ -16,6 +16,7 @@ import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import "./index.css";
+import { applyTheme, storedTheme } from "@/lib/themes";
 
 // Lazy load route components for better code splitting
 const Landing = lazy(() => import("./pages/Landing.tsx"));
@@ -167,6 +168,10 @@ class RootErrorBoundary extends React.Component<
 // production build against a different deployment than dev, which split the
 // data: the deployed app wrote to a different database than dev, so nothing
 // appeared to save. Pinning one URL keeps dev and the deployed app in sync.
+// Paint the last-used theme before React mounts, so a refresh never flashes purple.
+const bootTheme = storedTheme();
+if (bootTheme) applyTheme(bootTheme);
+
 const convex = new ConvexReactClient(CONVEX_URL, {
   /**
    * Record WHY the backend closed the connection.

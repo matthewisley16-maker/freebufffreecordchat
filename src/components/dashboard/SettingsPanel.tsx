@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "./ui";
 import { toast } from "sonner";
-import { Eye, EyeOff, KeyRound, Lock, Mail, Mic, Monitor, Palette, Settings2, Shield, Trash2, User, X } from "lucide-react";
+import { Check, Eye, EyeOff, KeyRound, Lock, Mail, Mic, Monitor, Palette, Settings2, Shield, Trash2, User, X } from "lucide-react";
+import { THEMES, applyTheme } from "@/lib/themes";
 import SecretChatsDialog from "./SecretChats";
 import SiteLockSettings from "./SiteLockSettings";
 
@@ -239,12 +240,18 @@ export default function SettingsPanel({ onClose, onEditProfile }: { onClose: () 
                 </div>
               </div>
               <label className="fc-select-row">Theme
-                <select className="fc-select" value={theme} onChange={(e) => { setTheme(e.target.value); void saveAppearance({ theme: e.target.value }); }}>
-                  <option value="system">System / default</option>
-                  <option value="dark">Dark</option>
-                  <option value="light">Light</option>
-                  <option value="midnight">Midnight</option>
-                  <option value="contrast">High contrast</option>
+                <select
+                  className="fc-select"
+                  value={theme}
+                  onChange={(e) => {
+                    setTheme(e.target.value);
+                    applyTheme(e.target.value);
+                    void saveAppearance({ theme: e.target.value });
+                  }}
+                >
+                  {THEMES.map((option) => (
+                    <option key={option.id} value={option.id}>{option.name} — {option.blurb}</option>
+                  ))}
                 </select>
               </label>
               <label className="fc-select-row">Interface density
@@ -264,13 +271,40 @@ export default function SettingsPanel({ onClose, onEditProfile }: { onClose: () 
               <h3><Palette size={16} /> Appearance</h3>
               <p className="fc-muted">Theme changes apply immediately and are saved to your account.</p>
               <span className="fc-field-label">Theme</span>
-              <div className="fc-radio-row">
-                {([["system", "System"], ["dark", "Dark"], ["light", "Light"], ["midnight", "Midnight"], ["contrast", "High contrast"]] as const).map(([value, label]) => (
-                  <label key={value} className={`fc-radio ${theme === value ? "active" : ""}`}>
-                    <input type="radio" name="theme" checked={theme === value} onChange={() => { setTheme(value); void saveAppearance({ theme: value }); }} />
-                    {label}
-                  </label>
-                ))}
+              <div className="fc-theme-grid" role="radiogroup" aria-label="Theme">
+                {THEMES.map((option) => {
+                  const selected = theme === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      className={`fc-theme-card ${selected ? "active" : ""}`}
+                      onClick={() => {
+                        setTheme(option.id);
+                        // Applied immediately so the whole app changes without
+                        // waiting for the round-trip; also stored for this device.
+                        applyTheme(option.id);
+                        void saveAppearance({ theme: option.id });
+                      }}
+                    >
+                      <span className="fc-theme-preview" style={{ background: option.preview.bg }} aria-hidden="true">
+                        <span className="fc-theme-preview-rail" style={{ background: option.preview.rail }} />
+                        <span className="fc-theme-preview-side" style={{ background: option.preview.side }} />
+                        <span className="fc-theme-preview-main" style={{ background: option.preview.panel }}>
+                          <i style={{ background: option.preview.accent }} />
+                          <i style={{ background: option.preview.accent, opacity: 0.55 }} />
+                        </span>
+                      </span>
+                      <span className="fc-theme-meta">
+                        <strong>{option.name}</strong>
+                        <small>{option.blurb}</small>
+                      </span>
+                      {selected && <span className="fc-theme-check"><Check size={13} /></span>}
+                    </button>
+                  );
+                })}
               </div>
               <label className="fc-select-row">Interface density
                 <select className="fc-select" value={density} onChange={(e) => { setDensity(e.target.value); void saveAppearance({ density: e.target.value }); }}>
