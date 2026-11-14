@@ -489,7 +489,7 @@ export const updateAppearance = mutation({
     const userId = await currentUserId(ctx);
     const clean: Record<string, unknown> = {};
     if (args.theme !== undefined) {
-      if (!["dark", "light", "midnight", "sakura", "forest", "sunset", "mono", "contrast", "system"].includes(args.theme)) throw new Error("Unknown theme.");
+      if (!["dark", "light", "midnight", "sakura", "forest", "sunset", "mono", "aurora", "nebula", "vaporwave", "cyber", "obsidian", "ember", "glacier", "lavender", "rosegold", "contrast", "system"].includes(args.theme)) throw new Error("Unknown theme.");
       clean.theme = args.theme;
     }
     if (args.density !== undefined) {

@@ -237,7 +237,7 @@ function AnnouncementBanner() {
   const announcement = useQuery(api.admin.platformBanner, {});
   if (!announcement?.announcement) return null;
   return (
-    <div role="status" className="mx-3 mt-2 rounded-lg border border-violet-400/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-100 sm:mx-4">
+    <div role="status" className="fc-announcement">
       <strong className="mr-1 font-semibold">Announcement:</strong>
       {announcement.announcement}
     </div>
@@ -1100,7 +1100,7 @@ export default function Dashboard() {
         >
           <svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true">
             <rect width="64" height="64" rx="18" fill="url(#fcg)" />
-            <defs><linearGradient id="fcg" x1="0" y1="0" x2="64" y2="64"><stop offset="0" stopColor="#9d7bff" /><stop offset="1" stopColor="#6d3ff5" /></linearGradient></defs>
+            <defs><linearGradient id="fcg" x1="0" y1="0" x2="64" y2="64"><stop offset="0" stopColor="var(--fc-accent-3, #9d7bff)" /><stop offset="1" stopColor="var(--fc-accent-2, #6d3ff5)" /></linearGradient></defs>
             <g stroke="#fff" strokeWidth="5" strokeLinecap="round"><path d="M16 27v10M24 18v28M32 24v16M40 14v36M48 26v12" /></g>
           </svg>
         </button>

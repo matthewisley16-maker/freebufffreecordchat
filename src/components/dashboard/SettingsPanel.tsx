@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "./ui";
 import { toast } from "sonner";
-import { Check, Eye, EyeOff, KeyRound, Lock, Mail, Mic, Monitor, Palette, Settings2, Shield, Trash2, User, X } from "lucide-react";
+import { Check, Eye, EyeOff, Gem, KeyRound, Lock, Mail, Mic, Monitor, Palette, Settings2, Shield, Trash2, User, X } from "lucide-react";
 import { THEMES, applyTheme } from "@/lib/themes";
 import SecretChatsDialog from "./SecretChats";
 import SiteLockSettings from "./SiteLockSettings";
@@ -250,7 +250,7 @@ export default function SettingsPanel({ onClose, onEditProfile }: { onClose: () 
                   }}
                 >
                   {THEMES.map((option) => (
-                    <option key={option.id} value={option.id}>{option.name} — {option.blurb}</option>
+                    <option key={option.id} value={option.id}>{option.group === "nitro" ? "✦ " : ""}{option.name} — {option.blurb}</option>
                   ))}
                 </select>
               </label>
@@ -271,41 +271,64 @@ export default function SettingsPanel({ onClose, onEditProfile }: { onClose: () 
               <h3><Palette size={16} /> Appearance</h3>
               <p className="fc-muted">Theme changes apply immediately and are saved to your account.</p>
               <span className="fc-field-label">Theme</span>
-              <div className="fc-theme-grid" role="radiogroup" aria-label="Theme">
-                {THEMES.map((option) => {
-                  const selected = theme === option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      className={`fc-theme-card ${selected ? "active" : ""}`}
-                      onClick={() => {
-                        setTheme(option.id);
-                        // Applied immediately so the whole app changes without
-                        // waiting for the round-trip; also stored for this device.
-                        applyTheme(option.id);
-                        void saveAppearance({ theme: option.id });
-                      }}
-                    >
-                      <span className="fc-theme-preview" style={{ background: option.preview.bg }} aria-hidden="true">
-                        <span className="fc-theme-preview-rail" style={{ background: option.preview.rail }} />
-                        <span className="fc-theme-preview-side" style={{ background: option.preview.side }} />
-                        <span className="fc-theme-preview-main" style={{ background: option.preview.panel }}>
-                          <i style={{ background: option.preview.accent }} />
-                          <i style={{ background: option.preview.accent, opacity: 0.55 }} />
-                        </span>
-                      </span>
-                      <span className="fc-theme-meta">
-                        <strong>{option.name}</strong>
-                        <small>{option.blurb}</small>
-                      </span>
-                      {selected && <span className="fc-theme-check"><Check size={13} /></span>}
-                    </button>
-                  );
-                })}
-              </div>
+              {([
+                { id: "signature", label: "Signature", hint: "Clean, classic looks", icon: null },
+                { id: "nitro", label: "Nitro collection", hint: "Gradients, glow and richer colour", icon: <Gem size={13} /> },
+              ] as const).map((group) => {
+                const options = THEMES.filter((option) => option.group === group.id);
+                if (options.length === 0) return null;
+                return (
+                  <div key={group.id} className="fc-theme-section">
+                    <div className={`fc-theme-group ${group.id}`}>
+                      <strong>{group.label}</strong>
+                      <span>{group.hint}</span>
+                      {group.icon}
+                    </div>
+                    <div className="fc-theme-grid" role="radiogroup" aria-label={group.label}>
+                      {options.map((option) => {
+                        const selected = theme === option.id;
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            className={`fc-theme-card ${selected ? "active" : ""}`}
+                            onClick={() => {
+                              setTheme(option.id);
+                              // Applied immediately so the whole app changes without
+                              // waiting for the round-trip; also stored for this device.
+                              applyTheme(option.id);
+                              void saveAppearance({ theme: option.id });
+                            }}
+                          >
+                            <span
+                              className="fc-theme-preview"
+                              aria-hidden="true"
+                              style={{
+                                background: `radial-gradient(130% 100% at 16% 0%, ${option.preview.glow}, transparent 64%), linear-gradient(160deg, ${option.preview.bg}, ${option.preview.panel})`,
+                              }}
+                            >
+                              <span className="fc-theme-preview-rail" style={{ background: option.preview.rail }} />
+                              <span className="fc-theme-preview-side" style={{ background: option.preview.side }} />
+                              <span className="fc-theme-preview-main">
+                                <i style={{ background: `linear-gradient(90deg, ${option.preview.accent}, ${option.preview.accent2})` }} />
+                                <i style={{ background: option.preview.accent, opacity: 0.5 }} />
+                                <i style={{ background: option.preview.accent, opacity: 0.26 }} />
+                              </span>
+                            </span>
+                            <span className="fc-theme-meta">
+                              <strong>{option.name}</strong>
+                              <small>{option.blurb}</small>
+                            </span>
+                            {selected && <span className="fc-theme-check"><Check size={13} /></span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
               <label className="fc-select-row">Interface density
                 <select className="fc-select" value={density} onChange={(e) => { setDensity(e.target.value); void saveAppearance({ density: e.target.value }); }}>
                   <option value="comfortable">Comfortable</option>
