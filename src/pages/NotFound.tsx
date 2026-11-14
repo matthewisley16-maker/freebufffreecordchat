@@ -1,26 +1,20 @@
-import { motion } from "framer-motion";
+import { useNavigate } from "react-router";
+import FriendlyError from "@/components/error/FriendlyError";
 
+/**
+ * A missing page is still an error screen, so it gets the same treatment: the
+ * purple buddy, plain language, a way home and the tiny game. No scary 404 dump.
+ */
 export default function NotFound() {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen flex flex-col"
-    >
+  const navigate = useNavigate();
 
-      
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="max-w-5xl mx-auto relative px-4">
-          <div className="flex items-center justify-center min-h-[200px]">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold text-foreground mb-4">404</h1>
-              <p className="text-lg text-muted-foreground">Page Not Found</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
+  return (
+    <FriendlyError
+      eyebrow="404 — lost little page"
+      title="Oopsie — this page doesn't exist."
+      text="The link may be old or mistyped, but nothing is broken and nothing was deleted. Head home and carry on."
+      retryLabel="Take me home"
+      onRetry={() => navigate("/")}
+    />
   );
 }

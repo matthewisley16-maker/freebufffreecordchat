@@ -9,6 +9,7 @@ import "./error.css";
  * in-page variant used when one feature fails but the rest of Freecord is fine.
  */
 export default function FriendlyError({
+  eyebrow = "oopsie!",
   title = "Oopsie — that didn't load.",
   text = "That's our fault, not yours. Give it a moment and refresh the page — your messages and communities are safe.",
   label,
@@ -20,6 +21,7 @@ export default function FriendlyError({
   reportNote,
   compact = false,
 }: {
+  eyebrow?: string;
   title?: string;
   text?: string;
   label?: string;
@@ -70,7 +72,7 @@ export default function FriendlyError({
       <div className="fc-oops-glow" aria-hidden="true" />
       <div className="fc-oops-card">
         <FreecordBuddy size={148} className="fc-oops-buddy" title="The Freecord buddy, looking apologetic" />
-        <p className="fc-oops-eyebrow">oopsie!</p>
+        <p className="fc-oops-eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
         <p className="fc-oops-text">{text}</p>
         {actions}
